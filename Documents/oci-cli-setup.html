@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Complete guide to setting up Oracle Cloud Infrastructure CLI on Windows, macOS, and Linux with step-by-step instructions" />
+  <title>OCI CLI Setup Guide - Oracle Cloud Infrastructure Command Line Interface</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    header {
+      background-color: #312d2a;
+      color: #ffffff;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 5px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 2em;
+    }
+    h2 {
+      color: #312d2a;
+      border-bottom: 2px solid #c74634;
+      padding-bottom: 10px;
+      margin-top: 30px;
+    }
+    h3 {
+      color: #312d2a;
+      margin-top: 20px;
+    }
+    main {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    code {
+      background-color: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    pre {
+      background-color: #312d2a;
+      color: #ffffff;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      border-left: 4px solid #c74634;
+    }
+    pre code {
+      background-color: transparent;
+      padding: 0;
+      color: #ffffff;
+    }
+    .note {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 3px;
+    }
+    .warning {
+      background-color: #f8d7da;
+      border-left: 4px solid #dc3545;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 3px;
+    }
+    ul,
+    ol {
+      margin: 15px 0;
+      padding-left: 30px;
+    }
+    li {
+      margin: 8px 0;
+    }
+    a {
+      color: #c74634;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    footer {
+      margin-top: 40px;
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      border-top: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>OCI CLI Setup Guide</h1>
+    <p>Complete installation and configuration guide for Oracle Cloud Infrastructure Command Line Interface</p>
+  </header>
+
+  <main>
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>
+        The Oracle Cloud Infrastructure Command Line Interface (OCI CLI) is a powerful tool that allows you to manage
+        your Oracle Cloud Infrastructure resources from the command line. This guide will walk you through the
+        installation and configuration process.
+      </p>
+    </section>
+
+    <section id="prerequisites">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>An Oracle Cloud Infrastructure account</li>
+        <li>Python 3.8 or later (Python 3.6+ is supported but 3.8+ is recommended)</li>
+        <li>Administrator or sudo privileges on your machine</li>
+        <li>An active internet connection</li>
+      </ul>
+    </section>
+
+    <section id="installation">
+      <h2>Installation</h2>
+
+      <h3>Windows</h3>
+      <p>Option 1: Using PowerShell (Recommended)</p>
+      <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.ps1'))"</code></pre>
+
+      <p>Option 2: Using Python pip</p>
+      <pre><code>pip install oci-cli</code></pre>
+
+      <h3>macOS and Linux</h3>
+      <p>Option 1: Using the installer script (Recommended)</p>
+      <pre><code>bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"</code></pre>
+
+      <p>Option 2: Using Python pip</p>
+      <pre><code>pip3 install oci-cli</code></pre>
+
+      <div class="note">
+        <strong>Note:</strong> The installer script automatically handles all dependencies and adds OCI CLI to your
+        PATH. When prompted, accept the default installation directory or specify a custom location.
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2>Verify Installation</h2>
+      <p>After installation, verify that OCI CLI is properly installed:</p>
+      <pre><code>oci --version</code></pre>
+      <p>You should see output similar to:</p>
+      <pre><code>3.45.0</code></pre>
+    </section>
+
+    <section id="configuration">
+      <h2>Configuration</h2>
+
+      <h3>Interactive Setup</h3>
+      <p>Run the configuration command to set up your OCI CLI:</p>
+      <pre><code>oci setup config</code></pre>
+
+      <p>You will be prompted to provide the following information:</p>
+      <ol>
+        <li><strong>Config file location:</strong> Press Enter to accept the default (~/.oci/config) or specify a custom path</li>
+        <li><strong>User OCID:</strong> Find this in the OCI Console under Identity → Users → User Details</li>
+        <li><strong>Tenancy OCID:</strong> Find this in the OCI Console under Governance → Tenancy Details</li>
+        <li><strong>Region:</strong> Enter your home region (e.g., us-ashburn-1, us-phoenix-1)</li>
+        <li><strong>Generate API key:</strong> Type Y to generate a new API key pair</li>
+      </ol>
+
+      <h3>API Key Setup</h3>
+      <p>If you chose to generate a new API key, the CLI will create:</p>
+      <ul>
+        <li>A private key file (typically ~/.oci/oci_api_key.pem)</li>
+        <li>A public key file (typically ~/.oci/oci_api_key_public.pem)</li>
+      </ul>
+
+      <div class="warning">
+        <strong>Important:</strong> You must upload the public key to your OCI user account. The setup process will
+        display the public key content that you need to add.
+      </div>
+
+      <h3>Upload Public Key to OCI Console</h3>
+      <ol>
+        <li>Log in to the OCI Console</li>
+        <li>Navigate to Identity → Users</li>
+        <li>Click on your username</li>
+        <li>Under Resources, click API Keys</li>
+        <li>Click Add API Key</li>
+        <li>Select Paste Public Key</li>
+        <li>Paste the content from ~/.oci/oci_api_key_public.pem</li>
+        <li>Click Add</li>
+      </ol>
+    </section>
+
+    <section id="configuration-file">
+      <h2>Configuration File Format</h2>
+      <p>Your OCI configuration file (~/.oci/config on Linux/macOS or %USERPROFILE%\.oci\config on Windows) should look like this:</p>
+      <pre><code>[DEFAULT]
+user=ocid1.user.oc1..aaaaaaaaexampleuserocid
+fingerprint=12:34:56:78:90:ab:cd:ef:12:34:56:78:90:ab:cd:ef
+key_file=~/.oci/oci_api_key.pem
+tenancy=ocid1.tenancy.oc1..aaaaaaaaexampletenancyocid
+region=us-ashburn-1</code></pre>
+
+      <div class="note">
+        <strong>Note:</strong> You can create multiple profiles in the configuration file by adding sections with
+        different names (e.g., [PRODUCTION], [DEVELOPMENT]).
+      </div>
+    </section>
+
+    <section id="testing">
+      <h2>Test Your Configuration</h2>
+      <p>Test your OCI CLI configuration by listing your compute instances:</p>
+      <pre><code>oci compute instance list --compartment-id &lt;your-compartment-ocid&gt;</code></pre>
+
+      <p>Or test with a simple command that does not require a compartment ID:</p>
+      <pre><code>oci iam region list</code></pre>
+
+      <p>If configured correctly, you should see a JSON response with a list of OCI regions.</p>
+    </section>
+
+    <section id="common-commands">
+      <h2>Common OCI CLI Commands</h2>
+      <ul>
+        <li><code>oci compute instance list</code> - List compute instances</li>
+        <li><code>oci os bucket list</code> - List Object Storage buckets</li>
+        <li><code>oci network vcn list</code> - List Virtual Cloud Networks</li>
+        <li><code>oci iam user list</code> - List IAM users</li>
+        <li><code>oci iam compartment list</code> - List compartments</li>
+      </ul>
+
+      <p>For help with any command, use:</p>
+      <pre><code>oci &lt;service&gt; &lt;resource&gt; &lt;action&gt; --help</code></pre>
+    </section>
+
+    <section id="troubleshooting">
+      <h2>Troubleshooting</h2>
+
+      <h3>Command not found</h3>
+      <p>If you receive a command not found error, add OCI CLI to your PATH:</p>
+      <p><strong>Windows:</strong></p>
+      <pre><code>Add %USERPROFILE%\bin to your PATH environment variable</code></pre>
+
+      <p><strong>macOS/Linux:</strong></p>
+      <pre><code>export PATH=$PATH:~/bin
+# Add to ~/.bashrc or ~/.zshrc to make permanent</code></pre>
+
+      <h3>Authentication errors</h3>
+      <p>If you encounter authentication errors, verify:</p>
+      <ul>
+        <li>Your API key is properly uploaded to the OCI Console</li>
+        <li>The fingerprint in your config file matches the fingerprint shown in the OCI Console</li>
+        <li>Your private key file path is correct and the file has proper permissions (chmod 600 on Linux/macOS)</li>
+        <li>Your user OCID and tenancy OCID are correct</li>
+      </ul>
+
+      <h3>Permission errors</h3>
+      <p>Ensure your OCI user has the necessary IAM policies to perform the requested actions.</p>
+    </section>
+
+    <section id="additional-resources">
+      <h2>Additional Resources</h2>
+      <ul>
+        <li><a href="https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm" target="_blank" rel="noopener noreferrer">Official OCI CLI Documentation</a></li>
+        <li><a href="https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdkconfig.htm" target="_blank" rel="noopener noreferrer">SDK and CLI Configuration File</a></li>
+        <li><a href="https://github.com/oracle/oci-cli" target="_blank" rel="noopener noreferrer">OCI CLI GitHub Repository</a></li>
+        <li><a href="https://docs.oracle.com/en-us/iaas/Content/API/Concepts/cliconcepts.htm" target="_blank" rel="noopener noreferrer">CLI Concepts and Commands</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>Last updated: December 2025</p>
+    <p>For the latest information, visit the <a href="https://docs.oracle.com/en-us/iaas/tools/oci-cli/latest/oci_cli_docs/" target="_blank" rel="noopener noreferrer">official OCI CLI documentation</a></p>
+  </footer>
+</body>
+</html>
