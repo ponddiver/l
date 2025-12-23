@@ -1,0 +1,38 @@
+#cloud-config
+# Cloud-init script to prepare Oracle Linux for Oracle 19c installation
+
+packages:
+  - oracle-database-preinstall-19c
+  - unzip
+  - wget
+  - tar
+  - vim
+
+runcmd:
+  # Configure firewall for Oracle
+  - firewall-cmd --permanent --add-port=1521/tcp
+  - firewall-cmd --permanent --add-port=5500/tcp
+  - firewall-cmd --reload
+  
+  # Set kernel parameters for Oracle (already done by preinstall package)
+  - echo "Kernel parameters configured by oracle-database-preinstall-19c"
+  
+  # Create Oracle directories
+  - mkdir -p /u01/app/oracle/product/19.0.0/dbhome_1
+  - mkdir -p /u02/oradata
+  - chown -R oracle:oinstall /u01 /u02
+  - chmod -R 775 /u01 /u02
+  
+  # Add swap space (4GB) for better performance
+  - dd if=/dev/zero of=/swapfile bs=1M count=4096
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  
+  # Display installation message
+  - echo "System prepared for Oracle 19c installation" > /etc/motd
+  - echo "Oracle user created. Switch to oracle user: sudo su - oracle" >> /etc/motd
+  - echo "Oracle directories: /u01 (software), /u02 (data)" >> /etc/motd
+
+final_message: "Oracle Linux configured for Oracle 19c. Ready for database installation."

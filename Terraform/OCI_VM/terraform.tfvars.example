@@ -1,0 +1,24 @@
+# Rename this file to terraform.tfvars and fill in your values
+
+# OCI Authentication
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaa..."
+user_ocid        = "ocid1.user.oc1..aaaaaaaa..."
+fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "us-ashburn-1"
+
+# Compartment
+compartment_ocid = "ocid1.compartment.oc1..aaaaaaaa..."
+
+# Availability Domain (get this from OCI console or CLI)
+availability_domain = "QnsC:US-ASHBURN-AD-1"
+
+# SSH Public Key
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ..."
+
+# Instance Configuration (defaults to free tier)
+instance_shape          = "VM.Standard.A1.Flex"
+instance_ocpus          = 2
+instance_memory_in_gbs  = 12
+boot_volume_size_in_gbs = 100
+instance_display_name   = "oracle19c-vm"
