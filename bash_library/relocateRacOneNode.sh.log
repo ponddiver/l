@@ -1,0 +1,310 @@
+################################################################################
+# Script Creation Instructions Log
+# Script: relocateRacOneNode.sh
+# Created: 2025-12-21
+# Version: 1.0 Stable
+################################################################################
+
+## INITIAL REQUEST
+Create a bash script that will relocate an Oracle RAC One Node database to 
+another server in its pool.
+
+## SCRIPT PURPOSE
+Relocate an Oracle RAC One Node database from its current node to another 
+available node within the RAC cluster pool. Includes pre-relocation checks, 
+graceful shutdown, relocation, and post-relocation validation.
+
+## CORE REQUIREMENTS (Initial)
+- Monitor Oracle RAC One Node database relocation
+- Relocate database to a specified or auto-selected target node
+- Provide pre-relocation validation checks
+- Support both graceful and forced relocation modes
+- Verify successful relocation after execution
+- Execute as oracle user
+
+## DEVELOPMENT PHASES & MODIFICATIONS
+
+### Phase 1: Initial Script Creation
+- Created basic script structure with required parameters
+- Implemented --database (required), --target-node (required initially)
+- Added --allow-downtime, --force, --verbose, --dry-run flags
+- Implemented basic validation and relocation flow
+- Added user confirmation prompt before relocation
+- Implemented retry logic for verification (30 attempts, 10s interval)
+
+### Phase 2: Make Target Node Optional with Auto-Selection
+Instruction: "make --target-node optional. if not provided use srvctl config 
+database command to determine available servers in field 'Candidate servers'. 
+choose a different server than the one its currently running on"
+
+Changes Made:
+- Changed --target-node from required to optional parameter
+- Created _getCandidateServers() function to extract candidate servers from 
+  srvctl config output
+- Created _autoSelectTargetNode() function to automatically select first 
+  available alternate server
+- Updated documentation and examples to show optional usage
+- Removed parameter validation requiring --target-node
+- Modified main() to call auto-select when target-node not provided
+
+### Phase 3: Add RAC One Node Type Validation
+Instruction: "using srvctl config database command perform assertion that this 
+is a raconenode database. Database type: RACONENODE"
+
+Changes Made:
+- Created _validateDatabaseType() function
+- Extracts "Database type:" field from srvctl config output
+- Validates database type equals "RACONENODE"
+- Fails with clear error message if not RACONENODE
+- Integrated validation early in main() flow (after getting current node)
+
+### Phase 4: Remove Sudo Requirement from srvctl Commands
+Instruction: "srvctl can be executed by user oracle. it does not require sudo"
+
+Changes Made:
+- Removed _executeSudo() calls from all srvctl operations:
+  * _getCurrentNode() - Direct srvctl status call
+  * _validateDatabaseType() - Direct srvctl config call
+  * _getCandidateServers() - Direct srvctl config call
+  * _checkDatabaseStatus() - Direct srvctl status call
+  * _relocateDatabase() - Direct srvctl relocate call
+  * _verifyRelocation() - Direct srvctl status call
+- Updated Requirements section to clarify sudo only needed for crsctl verify
+- Updated NOTES section in help text
+- Cleaner execution with fewer privilege escalation prompts
+
+### Phase 5: Remove Cluster Node Discovery
+Instruction: "remove _getClusterNodes"
+
+Changes Made:
+- Removed _getClusterNodes() function entirely
+- Removed GV_RACONE_CLUSTER_NODES global variable
+- Removed call to _getClusterNodes from main() flow
+- Simplified _validateTargetNode() to only check against current node
+- Reduced unnecessary cluster-wide discovery operations
+- Streamlined execution flow
+
+### Phase 6: Validate Explicit Target Node Against Candidate Servers
+Instruction: "if --target-node is provided, ensure that it is in the list of 
+candidate servers"
+
+Changes Made:
+- Enhanced _validateTargetNode() to validate explicit target nodes
+- Checks target is in candidate servers list (from srvctl config)
+- Provides clear error message with available candidate servers if not found
+- Maintains existing check for target != current node
+- Ensures both auto-select and explicit modes use consistent candidate list
+
+## GLOBAL VARIABLE SPECIFICATIONS
+All variables follow sh.instruction.md naming conventions with GV_RACONE_ prefix
+to minimize conflicts with other scripts:
+
+- GV_RACONE_DATABASE - Database SID (required parameter)
+- GV_RACONE_TARGET_NODE - Target cluster node name (optional)
+- GV_RACONE_ALLOW_DOWNTIME - Allow graceful shutdown with force flag
+- GV_RACONE_FORCE - Skip user confirmation
+- GV_RACONE_VERBOSE - Enable debug output
+- GV_RACONE_DRY_RUN - Preview without making changes
+- GV_RACONE_CURRENT_NODE - Current database node location
+- GV_RACONE_AVAILABLE_NODES - Placeholder for future expansion
+
+## EXECUTION MODEL
+- Primary execution: oracle user (no privilege escalation needed)
+- srvctl operations: Execute directly as oracle user
+- crsctl verification: Uses sudo via _executeSudo() for privilege escalation
+- File operations: Direct write/read as oracle user
+
+## KEY FUNCTIONS
+
+_executeSudo()
+- Encapsulates and standardizes privilege escalation
+- Checks if already root
+- Uses cached sudo or prompts for password
+- Only used for crsctl operations requiring Grid Infrastructure access
+
+_validateEnvironment()
+- Checks oracle user context
+- Verifies required commands (crsctl, srvctl, sqlplus, grep, awk, sed)
+- Verifies Grid Infrastructure is running via crsctl check cluster
+
+_validateDatabaseType()
+- Extracts database type from srvctl config database output
+- Asserts type equals RACONENODE
+- Prevents non-RAC One Node database relocation attempts
+
+_getCandidateServers()
+- Extracts candidate servers from srvctl config database output
+- Parses "Candidate servers:" or "Servers:" field
+- Returns array of available candidate nodes
+
+_autoSelectTargetNode()
+- Gets candidate servers list
+- Filters out current node
+- Selects first available alternate server
+- Provides clear logging of selection
+
+_getCurrentNode()
+- Executes srvctl status database
+- Extracts node name from "is running on node" output
+- Sets GV_RACONE_CURRENT_NODE
+
+_validateTargetNode()
+- Checks target != current node
+- Validates target exists in candidate servers list
+- Shows available candidates if target not found
+
+_checkDatabaseStatus()
+- Executes srvctl status database
+- Ensures database is running before relocation
+- Logs status for debugging
+
+_confirmRelocation()
+- Displays relocation summary
+- Prompts user for confirmation (unless --force)
+- Shows: Database, Current Node, Target Node, Allow Downtime flags
+
+_relocateDatabase()
+- Executes srvctl relocate database command
+- Uses -f flag for force relocation if --allow-downtime
+- Without -f for graceful relocation (respects shutdown priorities)
+- Supports --dry-run mode for testing
+
+_verifyRelocation()
+- Implements retry loop (30 attempts, 10s intervals = 5 minutes timeout)
+- Polls srvctl status database until database running on target node
+- Provides progress feedback with verbose logging
+- Fails with clear message if verification timeout
+
+## COMMAND-LINE INTERFACE
+
+Required Parameters:
+- --database NAME : Oracle database SID
+
+Optional Parameters:
+- --target-node NODE : Explicit target cluster node (validated against candidates)
+- --allow-downtime : Use force relocation (-f flag)
+- --force : Skip confirmation prompt
+- --verbose : Enable debug output
+- --dry-run : Preview without making changes
+- --help : Display usage information
+
+Execution Modes:
+1. Explicit target with confirmation:
+   ./relocateRacOneNode.sh --database MYDB --target-node node2
+   
+2. Auto-select target with confirmation:
+   ./relocateRacOneNode.sh --database MYDB
+   
+3. Explicit target with downtime allowed and force:
+   ./relocateRacOneNode.sh --database MYDB --target-node node2 --allow-downtime --force
+   
+4. Preview mode:
+   ./relocateRacOneNode.sh --database MYDB --dry-run --verbose
+
+## DESIGN DECISIONS & RATIONALE
+
+1. Optional Target Node
+   - Rationale: Reduces operational burden by auto-selecting from valid candidates
+   - Implementation: Uses srvctl config to get candidate servers list
+   - Benefit: Simpler common case (single command) with option for explicit control
+
+2. Graceful vs Force Relocation
+   - Graceful (default): Respects database shutdown priorities, cleaner shutdown
+   - Force (-f flag): Faster relocation if downtime is acceptable
+   - Rationale: Default safe, but allows force when needed
+
+3. Candidate Server Validation
+   - Rationale: Prevents relocation to non-configured nodes
+   - Implementation: All target nodes (explicit or auto-selected) validated against 
+     srvctl config database candidate servers
+   - Benefit: Catches configuration errors early
+
+4. RAC One Node Type Check
+   - Rationale: Script only supports RACONENODE, not standard RAC or Standalone
+   - Implementation: Assertion early in execution flow
+   - Benefit: Prevents misuse on wrong database types
+
+5. Retry Verification Loop
+   - Rationale: Database startup after relocation takes time
+   - Implementation: 30 attempts with 10s interval = 5 minute timeout
+   - Benefit: Provides reliable confirmation of successful relocation
+
+6. No Cluster Node Discovery
+   - Rationale: Candidate servers from srvctl config sufficient
+   - Removed: _getClusterNodes() function
+   - Benefit: Simpler code, fewer Oracle Grid Infrastructure calls
+
+## COMPLIANCE WITH CODING STANDARDS
+
+✓ Follows sh.instruction.md guidelines:
+  - Shebang: #!/bin/bash
+  - Error handling: set -euo pipefail
+  - Variables quoted: "$VAR" syntax throughout
+  - Conditionals: [[ ... ]] preferred over [ ... ]
+  - Command substitution: $(...) instead of backticks
+  - Long-form flags: --database instead of -d
+  - Local variables: l_ prefix (e.g., l_node, l_candidates)
+  - Global variables: GV_ prefix with script-specific suffix (GV_RACONE_*)
+  - Helper functions: _ prefix (e.g., _validateDatabaseType)
+  - Logging: loggy integration with proper message types
+  - Error handling: Proper exit codes and error messages
+
+✓ Execution Context:
+  - Designed for oracle user execution
+  - Selective sudo only for Grid Infrastructure verification
+  - Proper documentation of privilege requirements
+
+✓ Global Variable Specificity:
+  - All variables use GV_RACONE_ prefix
+  - Minimizes chance of conflicts with other scripts
+  - Clear context about which script owns each variable
+
+## TESTING CHECKLIST
+
+- [ ] Test with --help parameter
+- [ ] Test with missing --database parameter
+- [ ] Test with explicit --target-node in candidate list
+- [ ] Test with explicit --target-node NOT in candidate list
+- [ ] Test without --target-node (auto-selection)
+- [ ] Test on non-RACONENODE database (should fail)
+- [ ] Test with --dry-run --verbose
+- [ ] Test with --allow-downtime --force
+- [ ] Test with database not running (should fail)
+- [ ] Test actual relocation and verify success
+- [ ] Test confirmation prompt with "no" response
+- [ ] Test confirmation prompt with "yes" response
+- [ ] Test --force to skip confirmation
+
+## DEPLOYMENT NOTES
+
+1. Place in oracle user's bash_library directory or PATH
+2. Ensure loggy.sh is available in same directory
+3. Oracle user must have proper ORACLE_HOME, ORACLE_BASE environment
+4. Grid Infrastructure must be running
+5. Database must be RAC One Node type
+6. Oracle user must have srvctl access
+7. crsctl verify may require sudo privileges (automatic escalation)
+
+## VERSION HISTORY
+
+v1.0 (2025-12-21) - Stable
+  - Initial stable release
+  - Complete RAC One Node relocation functionality
+  - Auto-selection from candidate servers
+  - Graceful and force relocation modes
+  - Comprehensive validation and verification
+
+## FUTURE ENHANCEMENT OPPORTUNITIES
+
+- Support for service-level relocation (in addition to database-level)
+- Metrics export (Prometheus format) for monitoring
+- Integration with monitoring systems (alerts on relocation)
+- Batch relocation of multiple databases
+- Pre/post-relocation custom hooks
+- Relocation scheduling (off-peak hours)
+- Relocation history logging to central location
+- Automatic backup before relocation
+
+################################################################################
+# END OF INSTRUCTIONS LOG
+################################################################################

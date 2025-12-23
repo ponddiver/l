@@ -1,0 +1,641 @@
+################################################################################
+# Script Creation Instructions Log
+# Script: ssh.sh
+# Created: 2025-12-21
+# Version: 1.0 Stable
+################################################################################
+
+## INITIAL REQUEST
+Create a bash script that executes remote SSH commands with support for both
+password and key-based authentication, configurable timeout, and flexible
+parameter precedence.
+
+## SCRIPT PURPOSE
+Execute commands on remote systems via SSH with flexible authentication methods
+(password or key-based), configurable command timeouts, and parameter precedence
+system. Enables bash automation workflows to execute remote operations on target
+servers, collect output, and return results to calling scripts. Supports both
+interactive authentication and automated credential-based connections.
+
+## CORE REQUIREMENTS (Initial)
+- Execute arbitrary SSH commands on remote servers
+- Support password-based authentication (requires sshpass utility)
+- Support key-based authentication (using SSH private keys)
+- Support configurable SSH port (default 22)
+- Support configurable command timeout (default 300 seconds)
+- Implement flexible parameter precedence (runtime > globals > defaults)
+- Capture command output and return to caller
+- Support interactive menu and help functionality
+- Integrate with bash_library logging (loggy.sh)
+- Handle authentication errors gracefully
+- Support both authentication methods with clear selection logic
+
+## DEVELOPMENT HISTORY
+
+### Initial Creation - Version 1.0
+The script was created with the following features:
+- Named parameter interface for SSH connection details
+- Support for two authentication methods:
+  1. Password-based authentication (via sshpass utility)
+  2. Key-based authentication (SSH private key file)
+- Automatic SSH private key discovery (~/.ssh/id_rsa default)
+- SSH port configuration (default 22)
+- Command timeout implementation
+- SSH connection validation before command execution
+- Output capture and logging
+- Error handling with meaningful exit codes
+- Connection error detection and reporting
+- Timeout detection and reporting
+- Global variable defaults (GV_SSH_*)
+- Interactive menu for parameter entry
+- Comprehensive help documentation
+- Integration with loggy.sh logging utility
+- Function export for use in other scripts
+
+## GLOBAL VARIABLE SPECIFICATIONS
+All variables follow sh.instruction.md naming conventions with GV_SSH_ prefix to
+minimize conflicts with other scripts:
+
+- GV_SSH_PORT - SSH port number
+  Default: "22" (standard SSH port)
+  Set by: --port parameter or global variable
+  Purpose: Specify non-standard SSH port if needed
+
+- GV_SSH_TIMEOUT - Command timeout in seconds
+  Default: "300" (5 minutes)
+  Set by: --timeout parameter or global variable
+  Purpose: Prevent hanging on unresponsive commands
+
+- GV_SSH_KEYFILE - Path to SSH private key file
+  Default: "" (empty, uses ~/.ssh/id_rsa if available)
+  Set by: --keyfile parameter or global variable
+  Format: "/path/to/private/key" (must exist and be readable)
+  Purpose: Specify explicit SSH key for authentication
+
+- GV_SSH_PASSWORD - SSH password for authentication
+  Default: "" (empty)
+  Set by: --password parameter or global variable
+  Purpose: Password for password-based authentication
+
+## EXECUTION MODEL
+- Primary execution: Any user (typically deployment/automation user)
+- Authentication: Password (via sshpass) or key-based (SSH keys)
+- SSH execution: Uses native ssh command
+- Output: Captured from remote command execution
+- Timeout: Enforced via bash timeout/timeout command
+- Integration: Results available to calling script
+- Return: Exit code and captured output
+
+## KEY FUNCTIONS
+
+_showHelp()
+- Displays complete usage documentation
+- Documents both authentication methods
+- Provides multiple usage examples
+- Lists all parameters and options
+- Explains parameter precedence
+- Shows global variable usage
+- Documents authentication selection logic
+- Purpose: Comprehensive help for users
+
+_showMenu()
+- Interactive menu for parameter entry
+- Prompts for username and hostname
+- Prompts for command to execute
+- Prompts for authentication method selection
+- Prompts for specific authentication details
+- Allows testing different authentication methods
+- Purpose: Guide first-time users through SSH configuration
+
+_assertRequiredParameters()
+- Validates that all required parameters are provided
+- Required: --username, --hostname, --command
+- Checks for non-empty values
+- Returns: 0 if all valid, 1 if any missing
+- Purpose: Enforce mandatory parameters before execution
+
+_assertAuthenticationProvided()
+- Validates that either password or keyfile is provided
+- Checks for one of: --password or --keyfile
+- Returns: 0 if valid, 1 if neither provided
+- Purpose: Ensure at least one authentication method specified
+
+_validateKeyfile()
+- Validates that SSH private key file exists
+- Checks file exists: `[[ -f "$keyfile" ]]`
+- Checks file is readable: `[[ -r "$keyfile" ]]`
+- Reports specific error if file missing or unreadable
+- Returns: 0 if valid, 1 if invalid
+- Purpose: Prevent SSH failures due to missing key file
+
+_executeSshCommand()
+- Main function that executes SSH command
+- Builds SSH command line with parameters:
+  * Port: `ssh -p $port`
+  * Key-based: `ssh -i $keyfile`
+  * Password-based: `sshpass -p $password ssh`
+- Applies timeout via timeout command
+- Captures output with error handling
+- Detects and reports:
+  * Connection errors (host unreachable)
+  * Authentication failures (permission denied)
+  * Timeout errors (command exceeded timeout)
+  * Command execution errors (exit code)
+- Returns: Command output and exit code
+- Purpose: Execute remote command with error detection
+
+## COMMAND-LINE INTERFACE
+
+Required Parameters:
+- --username USER : Remote server username (required)
+  Example: "admin", "root", "deploy"
+
+- --hostname HOST : Remote server hostname or IP address (required)
+  Example: "192.168.1.10", "db.example.com"
+
+- --command CMD : Command to execute on remote server (required)
+  Example: "uptime", "df -h", "ps aux | grep java"
+
+Authentication (one required):
+- --password PASS : Password for authentication
+  Requires sshpass: sudo apt install sshpass
+  Example: "secret123"
+  Note: Avoid hardcoding passwords; use environment variables
+
+- --keyfile FILE : Path to SSH private key file
+  Default if not specified: ~/.ssh/id_rsa
+  Example: "/home/user/.ssh/prod_key"
+  Note: File must exist and be readable by current user
+
+Optional Parameters:
+- --port PORT : SSH port
+  Default: 22
+  Example: "2222" for non-standard port
+
+- --timeout SECS : Command timeout in seconds
+  Default: 300 (5 minutes)
+  Example: "60" for 1-minute timeout
+
+- --help : Display help documentation
+- --menu : Show interactive menu
+
+Parameter Precedence (highest to lowest):
+1. Runtime named parameters (--port 2222)
+2. Global variables (GV_SSH_PORT="2222")
+3. Constants file values (constants.sh)
+4. Explicit defaults (22 for port, 300 for timeout)
+
+Execution Modes:
+1. Key-based authentication (most secure):
+   runSshCommand --username admin --hostname 192.168.1.10 \
+     --command "uptime" \
+     --keyfile ~/.ssh/server_key
+
+2. Password-based authentication:
+   runSshCommand --username root --hostname example.com \
+     --command "df -h" \
+     --password "secret123"
+
+3. Using global variables (set defaults):
+   GV_SSH_KEYFILE="/home/user/.ssh/prod_key"
+   GV_SSH_PORT="2222"
+   runSshCommand --username deploy --hostname prod.server.com \
+     --command "systemctl status nginx"
+
+4. With custom timeout:
+   runSshCommand --username admin --hostname remote.host \
+     --command "long-running-task" \
+     --timeout 600 \
+     --keyfile ~/.ssh/id_rsa
+
+5. Interactive menu:
+   runSshCommand --menu
+
+6. Help:
+   runSshCommand --help
+
+## DESIGN DECISIONS & RATIONALE
+
+1. Two Authentication Methods
+   Rationale: Password authentication is simple but less secure. Key-based is
+   more secure but requires key setup. Supporting both enables flexibility:
+   scripts can use keys (secure automation), interactive use can use password.
+
+2. sshpass for Password Authentication
+   Rationale: sshpass enables password-based SSH without interactive prompt.
+   Separate utility design (not built-in) encourages key-based auth which is
+   more secure. Optional installation reflects security best practices.
+
+3. Global Variable Defaults (GV_SSH_*)
+   Rationale: Allows setting connection defaults once (GV_SSH_KEYFILE, GV_SSH_PORT)
+   then multiple runSshCommand calls reuse settings. Reduces parameter repetition.
+   Follows sh.instruction.md naming conventions.
+
+4. Named Parameters Instead of Positional
+   Rationale: SSH has many options; positional parameters are error-prone.
+   Named parameters (--username, --hostname, --command) make code self-documenting
+   and flexible for future parameter additions.
+
+5. Configurable Timeout
+   Rationale: Remote commands can hang or run longer than expected. Timeout
+   prevents bash script from hanging indefinitely. Default 5 minutes suitable
+   for most operations; adjustable per-call.
+
+6. SSH Private Key Path Flexibility
+   Rationale: Different users/environments use different key paths. Default to
+   ~/.ssh/id_rsa (standard location), but allow override for production keys,
+   shared keys, or non-standard installations.
+
+7. Port Configuration
+   Rationale: Default SSH port 22 works for most systems, but some environments
+   use non-standard ports for security or operational reasons. Configurable port
+   enables flexible deployment.
+
+8. Output Capture
+   Rationale: Remote command output needed by calling script for processing.
+   Capturing stdout enables downstream analysis, parsing, or conditional logic
+   based on remote system state.
+
+9. No Privilege Escalation in ssh.sh
+   Rationale: SSH authentication is separate from remote command privileges.
+   Script runs SSH with user credentials; remote system handles privilege
+   elevation (sudo, etc.). Cleaner separation of concerns.
+
+10. Authentication Method Validation
+    Rationale: Prevents cryptic "permission denied" errors by validating
+    credentials before SSH connection attempt. Clear error messages guide users
+    to missing password or invalid key file.
+
+## COMPLIANCE WITH CODING STANDARDS
+
+✓ Follows sh.instruction.md guidelines:
+  - Uses GV_SSH_* prefix for global variables
+  - Maintains function organization with clear subfunctions
+  - Includes comprehensive header documentation
+  - Uses set -euo pipefail for safety
+  - Implements error handling with exit codes
+  - Provides help and menu functionality
+
+✓ Execution Context:
+  - Runs as any user (no privilege requirement)
+  - No sudo operations needed
+  - No system resource intensive operations
+  - Safe to execute in background/automation
+
+✓ Global Variable Specificity:
+  - GV_SSH_PORT: Specific to SSH configuration
+  - GV_SSH_TIMEOUT: Specific to command timeout
+  - GV_SSH_KEYFILE: Specific to SSH authentication
+  - GV_SSH_PASSWORD: Specific to password auth
+  - Minimal conflict risk with other scripts
+
+✓ Error Handling:
+  - Exit code 0: Success
+  - Exit code 1: Validation failed (missing params, invalid auth)
+  - Exit code 2: Connection error (host unreachable, auth failed)
+  - Exit code 3: Timeout exceeded
+  - All errors logged via loggy utility
+
+✓ Documentation:
+  - Comprehensive header with description and examples
+  - Function documentation for each subfunction
+  - Clear parameter descriptions with defaults
+  - Usage examples for all authentication methods
+  - Authentication method selection guidance
+
+## TESTING CHECKLIST
+
+- [ ] Test --help parameter displays complete documentation
+- [ ] Test --menu parameter shows interactive menu
+- [ ] Test with --keyfile authentication (valid key)
+- [ ] Test with --password authentication (valid password)
+- [ ] Test with invalid --keyfile (file doesn't exist)
+- [ ] Test with invalid --password (wrong password)
+- [ ] Test with invalid --hostname (host unreachable)
+- [ ] Test with missing --username parameter
+- [ ] Test with missing --hostname parameter
+- [ ] Test with missing --command parameter
+- [ ] Test with neither --password nor --keyfile (error)
+- [ ] Test --port parameter with non-standard port
+- [ ] Test --timeout parameter with short timeout
+- [ ] Test command output capture
+- [ ] Test command that fails on remote (wrong command)
+- [ ] Test command that succeeds with output
+- [ ] Test command that times out (exceeds --timeout)
+- [ ] Test GV_SSH_* global variables
+- [ ] Test parameter precedence (runtime > globals > defaults)
+- [ ] Test with ~/.ssh/id_rsa default key
+- [ ] Test with multiple rapid SSH commands
+- [ ] Test with command containing pipes and special chars
+- [ ] Test with multiline command
+- [ ] Test with sshpass installed (password auth)
+- [ ] Test with sshpass not installed (password auth fails)
+- [ ] Test connection to local SSH server (if available)
+- [ ] Test with different usernames
+- [ ] Test with IPv4 addresses
+- [ ] Test with IPv6 addresses (if available)
+- [ ] Test output is returned to caller
+- [ ] Test exit code reflects remote command status
+- [ ] Test with command using sudo (if available on remote)
+- [ ] Test with interactive command (should timeout)
+- [ ] Test key file permissions check
+- [ ] Test with empty command string (error)
+- [ ] Test with very long command
+
+## DEPLOYMENT NOTES
+
+### Prerequisites
+- bash shell (version 3.2+)
+- ssh command (OpenSSH client)
+- sshpass utility (only for password-based auth): sudo apt install sshpass
+- Standard utilities: grep, awk (included in all Linux distributions)
+- Network access to remote SSH servers
+- Valid SSH credentials (username/password or key)
+- Optional: loggy.sh in same directory (has fallback)
+
+### Installation
+1. Copy ssh.sh to desired location (e.g., /usr/local/bin or ~/bash_library/)
+2. Make executable: chmod +x ssh.sh
+3. Optional: Install sshpass if using password authentication: sudo apt install sshpass
+4. Optional: Copy loggy.sh to same directory for enhanced logging
+5. Test with: ./ssh.sh --username user --hostname host --command "echo test" --keyfile ~/.ssh/id_rsa
+
+### Usage in Scripts
+```bash
+#!/bin/bash
+source ./ssh.sh
+
+# Set connection defaults
+GV_SSH_KEYFILE="/home/user/.ssh/prod_key"
+GV_SSH_PORT="2222"
+
+# Execute remote command
+runSshCommand --username deploy --hostname prod.server.com \
+    --command "systemctl status application"
+
+# Check result
+if [ $? -eq 0 ]; then
+    echo "Service is running"
+else
+    echo "Service check failed"
+fi
+```
+
+### Authentication Setup Guide
+
+**Key-Based (Recommended)**:
+1. Generate SSH key if needed: ssh-keygen -t rsa -f ~/.ssh/prod_key
+2. Copy public key to remote: ssh-copy-id -i ~/.ssh/prod_key user@host
+3. Test connection: ssh -i ~/.ssh/prod_key user@host uptime
+
+**Password-Based**:
+1. Install sshpass: sudo apt install sshpass
+2. Test sshpass: sshpass -p 'password' ssh user@host uptime
+3. Use in script with GV_SSH_PASSWORD or --password parameter
+
+### Troubleshooting
+
+**Issue**: "Permission denied (publickey,password)"
+**Solution**: Verify credentials; test SSH directly: ssh -i keyfile user@host
+
+**Issue**: "Connection refused"
+**Solution**: Verify hostname, port; check if SSH running: ssh user@host -p 2222
+
+**Issue**: "No such file or directory" (key file)
+**Solution**: Verify --keyfile path exists and is readable
+
+**Issue**: "sshpass: command not found"
+**Solution**: Install sshpass: sudo apt install sshpass (only needed for password auth)
+
+**Issue**: "Command timed out"
+**Solution**: Increase --timeout value; verify remote command completes
+
+**Issue**: Remote command hangs in SSH
+**Solution**: Set timeout to prevent indefinite wait; check command on remote
+
+### Performance Considerations
+- SSH connection overhead: ~100-500ms per connection
+- Command execution speed depends on remote system
+- Network latency impacts response time
+- Parallel SSH connections possible with multiple script instances
+
+## VERSION HISTORY
+
+### v1.0 (2025-12-21) - Initial Release
+- Complete implementation of SSH command execution
+- Support for key-based and password-based authentication
+- Configurable timeout for remote commands
+- Flexible parameter precedence (runtime > globals > defaults)
+- Output capture and return to caller
+- Connection and authentication error detection
+- Interactive menu and help functionality
+- loggy.sh integration with graceful fallback
+- Error handling with meaningful exit codes
+
+## FUTURE ENHANCEMENT OPPORTUNITIES
+
+1. **SSH Agent Support**:
+   ```bash
+   runSshCommand --username user --hostname host --command "cmd" --use-agent
+   # Use SSH agent for key management instead of file path
+   ```
+
+2. **Known Hosts Management**:
+   ```bash
+   runSshCommand --hostname new-host --command "cmd" --accept-key
+   # Auto-accept first connection to new host
+   ```
+
+3. **SSH Config File Support**:
+   ```bash
+   runSshCommand --host prod-server --command "cmd"
+   # Use ~/.ssh/config for connection details
+   ```
+
+4. **Jump Host/Proxy Support**:
+   ```bash
+   runSshCommand --hostname target --via jump-host --command "cmd"
+   # Execute through intermediate jump host
+   ```
+
+5. **File Transfer**:
+   ```bash
+   runSshCommand --hostname host --copy /local/file /remote/path
+   # Integrated scp/sftp support
+   ```
+
+6. **Multiple Commands**:
+   ```bash
+   runSshCommand --hostname host --commands "cmd1" "cmd2" "cmd3"
+   # Execute multiple commands in sequence
+   ```
+
+7. **Background Execution**:
+   ```bash
+   runSshCommand --hostname host --command "long-task" --background
+   # Execute and return immediately, collect results later
+   ```
+
+8. **Connection Pooling**:
+   ```bash
+   runSshCommand --hostname host --command "cmd1" --keep-alive
+   # Maintain connection for multiple commands
+   ```
+
+9. **Bandwidth Control**:
+   ```bash
+   runSshCommand --hostname host --command "cmd" --bandwidth-limit 1M
+   # Limit network bandwidth usage
+   ```
+
+10. **SSH Tunneling**:
+    ```bash
+    runSshCommand --hostname host --tunnel 3306:localhost:3306
+    # Create local tunnel to remote service
+    ```
+
+## NOTES FOR MAINTAINERS
+
+### Code Organization
+The script follows a clear pattern:
+1. Sourcing dependencies (loggy.sh, constants.sh)
+2. Global variable initialization with defaults
+3. Main function (runSshCommand) dispatching to helpers
+4. Subfunction definitions (_showHelp, _executeSshCommand, etc.)
+5. Function exports and conditional execution
+
+### Key Implementation Details
+- Uses sshpass for password authentication
+- Uses SSH -i flag for key-based authentication
+- Uses timeout command to enforce command timeout
+- Checks file exists before using keyfile
+- Captures stdout and stderr
+- Detects connection errors from SSH output
+- Reports timeout via return code 3
+
+### Testing Guidance
+For comprehensive testing:
+1. Have remote SSH server available (VM, Docker, or cloud instance)
+2. Test both authentication methods
+3. Test connection failures (wrong host, wrong credentials)
+4. Test command execution (simple to complex commands)
+5. Test timeout scenarios
+6. Test output capture and return
+7. Verify exit codes are correct
+
+### Common Issues & Solutions
+**Issue**: "No such file or directory" when using ~/.ssh/id_rsa
+**Solution**: SSH key needs to be in actual home directory; use full path
+
+**Issue**: "command not found" for remote command
+**Solution**: Verify command exists on remote system; use full path if needed
+
+**Issue**: Hanging SSH connection
+**Solution**: Use timeout parameter to prevent indefinite wait
+
+**Issue**: Permission denied despite valid password
+**Solution**: Check password special characters; verify authentication method enabled on remote
+
+### Code Quality Metrics
+- Lines of code: ~370 (excluding comments/documentation)
+- Complexity: Moderate (parameter parsing, auth method selection)
+- Dependencies: 1 optional (sshpass for password auth)
+- Portable: Runs on any POSIX system with SSH client
+
+## RELATED SCRIPTS
+
+Scripts that work with ssh.sh:
+- Other automation scripts can use ssh.sh to execute remote operations
+- Results from ssh.sh can be piped to jsonValue.sh for parsing
+- Integration with sqlToJson.sh for remote database queries
+
+Integration example:
+```bash
+# Execute remote command and capture output
+runSshCommand --username user --hostname remote.host \
+    --command "curl http://localhost:8080/api/status" \
+    --keyfile ~/.ssh/key
+
+# If output is JSON, pipe to jsonValue
+# jsonValue --key "status" --json "$GV_SSH_RESULT"
+```
+
+## DEPENDENCIES
+
+### Required
+- bash shell (3.2+)
+- ssh command (OpenSSH client)
+- Standard utilities: grep (included in all Linux distributions)
+
+### Optional
+- sshpass (for password-based authentication)
+  Install: sudo apt install sshpass
+  Purpose: Enable password auth without interactive prompt
+- loggy.sh (graceful fallback if missing)
+- timeout command (usually available, some systems use gtimeout)
+
+### System/Environment
+- Network access to remote SSH servers
+- Remote SSH server running on target host
+- Valid SSH credentials (username + password OR keyfile)
+- ~/.ssh/config and authorized_keys if using keys
+
+## BEST PRACTICES FOR USERS
+
+1. **Use Key-Based Authentication When Possible**:
+   ```bash
+   # Secure: key-based
+   runSshCommand --username deploy --hostname prod.server \
+     --command "deploy.sh" --keyfile ~/.ssh/deploy_key
+   
+   # Less secure: password (avoid in production)
+   runSshCommand --username deploy --hostname prod.server \
+     --command "deploy.sh" --password "secret"
+   ```
+
+2. **Store Credentials Securely**:
+   ```bash
+   # Use environment variables, not hardcoded
+   GV_SSH_PASSWORD="$DEPLOY_PASSWORD"  # From environment
+   # Or use SSH agent for keys
+   ssh-add ~/.ssh/prod_key
+   ```
+
+3. **Set Appropriate Timeouts**:
+   ```bash
+   # Short timeout for quick commands
+   runSshCommand --hostname host --command "uptime" --timeout 10
+   
+   # Longer timeout for setup/deployment
+   runSshCommand --hostname host --command "setup.sh" --timeout 600
+   ```
+
+4. **Handle Errors in Scripts**:
+   ```bash
+   if ! runSshCommand --hostname host --command "test" --keyfile key; then
+       loggy --type error --message "SSH command failed"
+       exit 1
+   fi
+   ```
+
+5. **Log Remote Operations**:
+   ```bash
+   GV_LOGFILE="/var/log/remote-ops.log"
+   runSshCommand --hostname host --command "operation" --keyfile key
+   loggy --type success --message "Operation completed on host"
+   ```
+
+6. **Test SSH Connectivity First**:
+   ```bash
+   # Verify SSH works before using in scripts
+   ssh -i ~/.ssh/key -p 2222 user@host uptime
+   ```
+
+7. **Use Full Paths for Remote Commands**:
+   ```bash
+   # Explicit path more reliable than relying on PATH
+   runSshCommand --hostname host \
+     --command "/usr/local/bin/custom-script" \
+     --keyfile ~/.ssh/key
+   ```
+

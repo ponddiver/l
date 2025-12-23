@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Flexible logging utility providing categorized message output with optional file persistence and log level filtering." />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="loggy.sh - Script Creation Instructions" />
+  <meta property="og:description" content="Comprehensive logging utility with message types, levels, and file persistence." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>loggy.sh - Script Creation Instructions</title>
+</head>
+<body>
+  <header>
+    <main style="padding: 0 20px;">
+      <h1>loggy.sh - Script Creation Instructions</h1>
+    </main>
+  </header>
+  <main>
+    <nav class="toc">
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#purpose">Script Purpose</a></li>
+        <li><a href="#requirements">Core Requirements</a></li>
+        <li><a href="#variables">Global Variables</a></li>
+        <li><a href="#cli">Command-Line Interface</a></li>
+        <li><a href="#levels">Log Message Types and Levels</a></li>
+        <li><a href="#filtering">Log Level Filtering Logic</a></li>
+        <li><a href="#examples">Usage Examples</a></li>
+        <li><a href="#format">Message Format</a></li>
+        <li><a href="#functions">Key Functions</a></li>
+        <li><a href="#design">Design Decisions</a></li>
+        <li><a href="#testing">Testing Checklist</a></li>
+        <li><a href="#deployment">Deployment Notes</a></li>
+        <li><a href="#errors">Error Handling</a></li>
+        <li><a href="#enhancements">Future Enhancements</a></li>
+        <li><a href="#related">Related Scripts</a></li>
+        <li><a href="#practices">Best Practices</a></li>
+      </ul>
+    </nav>
+    
+    <section id="purpose">
+      <h2>Script Purpose</h2>
+      <p>Flexible logging utility providing categorized message output with optional file persistence, log level filtering, ANSI color coding, and interactive parameter entry.</p>
+    </section>
+
+    <section id="requirements">
+      <ul>
+        <li>Log messages with 8 different message types (error, fail, success, output, beginend, variable, command, debug)</li>
+        <li>Support log level filtering to show only priority-appropriate messages</li>
+        <li>Output colored messages to stdout (error/fail in RED, success in GREEN)</li>
+        <li>Optional file persistence with automatic directory creation</li>
+        <li>ISO 8601 timestamp formatting (YYYY-MM-DD HH:MM:SS)</li>
+        <li>Support quiet mode to suppress screen output while preserving file logging</li>
+        <li>Named parameter parsing with validation</li>
+        <li>Interactive menu mode for parameter entry</li>
+        <li>Proper assertion functions for parameter validation</li>
+        <li>Recursion-safe (prevent infinite logging loops)</li>
+        <li>POSIX-compliant for maximum portability</li>
+      </ul>
+    </section>
+
+    <section id="variables">
+      <h2>Global Variables</h2>
+      <ul>
+        <li><strong>GV_LOGFILE:</strong> Default file path for log output (empty = screen only)</li>
+        <li><strong>GV_LOGLEVEL:</strong> Default log level filter (default: 'output')</li>
+      </ul>
+    </section>
+
+    <section id="levels">
+      <h2>Log Message Types and Levels</h2>
+      <table>
+        <tr>
+          <th>Type</th>
+          <th>Level</th>
+          <th>Priority</th>
+          <th>Color</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td><code>error</code></td>
+          <td>1</td>
+          <td>Critical</td>
+          <td>Bright Red</td>
+          <td>System/function call errors</td>
+        </tr>
+        <tr>
+          <td><code>fail</code></td>
+          <td>2</td>
+          <td>High</td>
+          <td>Bright Red</td>
+          <td>Process failures</td>
+        </tr>
+        <tr>
+          <td><code>success</code></td>
+          <td>3</td>
+          <td>High</td>
+          <td>Bright Green</td>
+          <td>Successful completion</td>
+        </tr>
+        <tr>
+          <td><code>output</code></td>
+          <td>4</td>
+          <td>Normal</td>
+          <td>Default</td>
+          <td>Process output data (DEFAULT FILTER)</td>
+        </tr>
+        <tr>
+          <td><code>beginend</code></td>
+          <td>5</td>
+          <td>Low</td>
+          <td>Default</td>
+          <td>Function start/end markers</td>
+        </tr>
+        <tr>
+          <td><code>variable</code></td>
+          <td>6</td>
+          <td>Low</td>
+          <td>Default</td>
+          <td>Variable assignments</td>
+        </tr>
+        <tr>
+          <td><code>command</code></td>
+          <td>7</td>
+          <td>Low</td>
+          <td>Default</td>
+          <td>Command execution</td>
+        </tr>
+        <tr>
+          <td><code>debug</code></td>
+          <td>8</td>
+          <td>Low</td>
+          <td>Default</td>
+          <td>Detailed debug information</td>
+        </tr>
+      </table>
+    </section>
+
+    <section id="cli">
+      <h2>Command-Line Interface</h2>
+      <h3>Required Parameters</h3>
+      <ul>
+        <li><code>--type TYPE</code> - Message type (error, fail, success, output, beginend, variable, command, debug)</li>
+        <li><code>--message TEXT</code> - Message text to log</li>
+      </ul>
+      <h3>Optional Parameters</h3>
+      <ul>
+        <li><code>--file PATH</code> - Log file path (defaults to GV_LOGFILE)</li>
+        <li><code>--level LEVEL</code> - Log level filter (defaults to GV_LOGLEVEL, default: 'output')</li>
+        <li><code>--quiet</code> - Suppress screen output, preserve file output</li>
+        <li><code>--help</code> - Display help message</li>
+        <li><code>--menu</code> - Show interactive menu</li>
+      </ul>
+    </section>
+
+    <section id="filtering">
+      <h2>Log Level Filtering Logic</h2>
+      <p>Messages are displayed based on comparison of message level vs. filter level:</p>
+      <ul>
+        <li>Lower numeric values = higher priority/severity</li>
+        <li>Message shows if: <code>message_level ≤ filter_level</code></li>
+        <li>Default filter is 'output' (level 4), so shows: error, fail, success, output</li>
+        <li>Using --level debug (8) shows all messages</li>
+        <li>Using --level error (1) shows only errors</li>
+      </ul>
+    </section>
+
+    <section id="examples">
+      <h2>Usage Examples</h2>
+      <h3>Basic Error Logging</h3>
+      <div style="position: relative;">
+        <pre><code>loggy --type error --message "Database connection failed"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>With File Persistence (Global Variable)</h3>
+      <div style="position: relative;">
+        <pre><code>GV_LOGFILE="/var/log/app.log"
+loggy --type success --message "Backup completed"
+loggy --type error --message "Network timeout"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>With Custom Log Level</h3>
+      <div style="position: relative;">
+        <pre><code># Show all messages including debug
+loggy --type debug --message "Variable X=42" --level debug
+
+# Show only errors
+loggy --type error --message "Critical failure" --level error</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Quiet Mode (File Only)</h3>
+      <div style="position: relative;">
+        <pre><code>loggy --type debug --message "Debug info" --file /tmp/debug.log --quiet</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Interactive Menu</h3>
+      <div style="position: relative;">
+        <pre><code>loggy --menu</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Function Markers</h3>
+      <div style="position: relative;">
+        <pre><code>loggy --type beginend --message "Starting [_validateDatabase]"
+# ... function code ...
+loggy --type beginend --message "Completed [_validateDatabase]"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>In Shell Scripts</h3>
+      <div style="position: relative;">
+        <pre><code>#!/bin/bash
+source loggy.sh
+
+GV_LOGFILE="/var/log/backup.log"
+
+loggy --type beginend --message "Starting backup"
+if ! tar czf backup.tar.gz /data 2>&1; then
+    loggy --type error --message "Backup failed"
+    exit 1
+fi
+loggy --type success --message "Backup completed"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section id="functions">
+      <h2>Key Functions</h2>
+      <h3>_showHelp()</h3>
+      <p>Display comprehensive help message with all parameters, log levels, examples, and usage patterns.</p>
+      
+      <h3>_showMenu()</h3>
+      <p>Display interactive parameter entry menu. Prompts user for type, message, file, and level, then executes recursively.</p>
+      
+      <h3>_assertTypeProvided()</h3>
+      <p>Validate that --type parameter was provided and not empty. Returns 0 if valid, 1 if missing.</p>
+      
+      <h3>_assertMessageProvided()</h3>
+      <p>Validate that --message parameter was provided and not empty. Returns 0 if valid, 1 if missing.</p>
+      
+      <h3>_validateType()</h3>
+      <p>Check if log type exists in LOG_LEVELS associative array. Returns 0 if valid, 1 if invalid.</p>
+      
+      <h3>_validateLogLevel()</h3>
+      <p>Check if log level exists in LOG_LEVELS associative array. Returns 0 if valid, 1 if invalid.</p>
+      
+      <h3>_getColorCode()</h3>
+      <p>Return ANSI color code based on message type (red for error/fail, green for success, empty for others).</p>
+    </section>
+
+    <section id="format">
+      <h2>Message Format</h2>
+      <p>All messages follow consistent format:</p>
+      <div style="position: relative;">
+        <pre><code>YYYY-MM-DD HH:MM:SS TYPE MESSAGE_TEXT</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <p>Example: <code>2025-12-21 14:30:45 error Database connection failed</code></p>
+    </section>
+
+    <section id="design">
+      <h2>Design Decisions</h2>
+      <div class="note">
+        <h3>Log Level Numeric Mapping</h3>
+        <p>Lower numbers indicate higher priority/severity. Enables flexible filtering where setting level=4 automatically shows messages 1-4 (all high-priority messages). More intuitive than reverse numbering.</p>
+      </div>
+      <div class="note">
+        <h3>Separate Screen and File Output Paths</h3>
+        <p>Allows screen output with color while file output remains plain text (no ANSI codes). Quiet mode enables silent file logging for background operations.</p>
+      </div>
+      <div class="note">
+        <h3>Associative Array for Type/Level Mapping</h3>
+        <p>Bash 4+ associative arrays provide O(1) lookup performance and simplify validation logic. Two arrays (LOG_LEVELS) maintain both type names and numeric priorities in single data structure.</p>
+      </div>
+      <div class="note">
+        <h3>Recursive Help/Menu Calls with Quiet Flag</h3>
+        <p>Internal calls to loggy from --menu and --help use --quiet to prevent nested output pollution. Catch stderr to prevent recursion issues during initialization.</p>
+      </div>
+    </section>
+
+    <section id="testing">
+      <h2>Testing Checklist</h2>
+      <ul>
+        <li><input type="checkbox"> Test all 8 message types (error, fail, success, output, beginend, variable, command, debug)</li>
+        <li><input type="checkbox"> Test color output (error/fail = RED, success = GREEN)</li>
+        <li><input type="checkbox"> Test missing --type parameter (should error)</li>
+        <li><input type="checkbox"> Test missing --message parameter (should error)</li>
+        <li><input type="checkbox"> Test invalid message type</li>
+        <li><input type="checkbox"> Test invalid log level</li>
+        <li><input type="checkbox"> Test file logging with GV_LOGFILE</li>
+        <li><input type="checkbox"> Test file logging with --file parameter</li>
+        <li><input type="checkbox"> Test automatic directory creation</li>
+        <li><input type="checkbox"> Test --quiet mode (suppress screen, preserve file)</li>
+        <li><input type="checkbox"> Test log level filtering (--level error shows only errors)</li>
+        <li><input type="checkbox"> Test log level filtering (--level debug shows all)</li>
+        <li><input type="checkbox"> Test default level 'output' (shows error, fail, success, output)</li>
+        <li><input type="checkbox"> Test ISO 8601 timestamp format</li>
+        <li><input type="checkbox"> Test --help parameter</li>
+        <li><input type="checkbox"> Test --menu parameter</li>
+        <li><input type="checkbox"> Test in sourced context (not direct execution)</li>
+        <li><input type="checkbox"> Test function export (export -f loggy)</li>
+        <li><input type="checkbox"> Test recursion prevention in help/menu</li>
+        <li><input type="checkbox"> Test with non-existent log directory (auto-create)</li>
+      </ul>
+    </section>
+
+    <section id="deployment">
+      <h2>Deployment Notes</h2>
+      <h3>Prerequisites</h3>
+      <ul>
+        <li>Bash 4.0+ (associative arrays required)</li>
+        <li>Standard utilities: date, mkdir, echo</li>
+        <li>POSIX-compliant shell</li>
+      </ul>
+      <h3>Integration</h3>
+      <p>Source loggy.sh in other scripts to enable structured logging:</p>
+      <div style="position: relative;">
+        <pre><code>#!/bin/bash
+source ./loggy.sh
+
+GV_LOGFILE="/var/log/myscript.log"
+loggy --type beginend --message "Starting script"
+# ... script logic ...
+loggy --type success --message "Script completed"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section id="errors">
+      <h2>Error Handling</h2>
+      <ul>
+        <li>Returns 0 on success</li>
+        <li>Returns 1 on parameter validation failure (missing required params, invalid types)</li>
+        <li>Returns 1 on invalid parameter (unknown flag)</li>
+        <li>Gracefully handles missing log directory (creates automatically)</li>
+        <li>Prevents infinite recursion in help/menu via --quiet flag</li>
+      </ul>
+    </section>
+
+    <section id="enhancements">
+      <h2>Future Enhancements</h2>
+      <ol>
+        <li>Syslog integration (--syslog flag)</li>
+        <li>JSON output format for machine parsing</li>
+        <li>Structured logging with key-value pairs</li>
+        <li>Log rotation support (--max-size, --max-files)</li>
+        <li>Timestamp format customization (--timestamp-format)</li>
+        <li>Email alerts on errors (--email-on-error)</li>
+        <li>Performance profiling (execution time logging)</li>
+        <li>Batch logging mode for high-volume messages</li>
+        <li>Log filtering by pattern (--grep-pattern)</li>
+        <li>Contextual logging (script name, line number, function name)</li>
+      </ol>
+    </section>
+
+    <section id="related">
+      <h2>Related Scripts</h2>
+      <ul>
+        <li><strong>updateOratab.sh:</strong> Uses loggy for operation logging</li>
+        <li><strong>sqlToJson.sh:</strong> Uses loggy for query execution logging</li>
+        <li><strong>relocateRacOneNode.sh:</strong> Uses loggy for RAC relocation tracking</li>
+        <li><strong>findOracleDatabases.sh:</strong> Uses loggy for database discovery logging</li>
+        <li><strong>ssh.sh:</strong> Uses loggy for remote command execution tracking</li>
+      </ul>
+    </section>
+
+    <section id="practices">
+      <h2>Best Practices</h2>
+      <ul>
+        <li>Use --type beginend at function start/end for call tracking</li>
+        <li>Use --type debug with --quiet during development for file-only logging</li>
+        <li>Set GV_LOGFILE early in scripts to enable file logging for all subsequent calls</li>
+        <li>Use --quiet in background operations to prevent stdout pollution</li>
+        <li>Use log level filtering to control verbosity in production vs. development</li>
+        <li>Include meaningful context in messages (database names, file paths, etc.)</li>
+        <li>Use --type variable when logging important state changes</li>
+        <li>Use --type command for tracking shell command execution</li>
+        <li>Use --type output for process results and data flow</li>
+        <li>Avoid logging sensitive information (passwords, tokens, secrets)</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>loggy.sh - Script Instructions</strong> | Generated: December 21, 2025 | Version 1.0</p>
+  </footer>
+
+  <script>
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const pre = button.closest('div').querySelector('pre');
+        const text = pre.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          button.textContent = 'Copied!';
+          setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

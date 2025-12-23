@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Bash library scripts for system administration and Oracle database automation" />
+    <meta name="color-scheme" content="light dark" />
+    <meta property="og:title" content="Bash Library - Script Reference" />
+    <meta property="og:description" content="Production-ready bash utilities for system administration and database automation" />
+    <meta property="og:type" content="website" />
+    <title>Bash Library - Script Reference</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Bash Library - Script Reference</h1>
+        <p>Production-ready bash utilities for system administration and database automation</p>
+    </header>
+    
+    <main>
+        <nav class="toc">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#scripts">Available Scripts</a></li>
+                <li><a href="#usage">Usage Guide</a></li>
+                <li><a href="#documentation">Full Documentation</a></li>
+            </ul>
+        </nav>
+        
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>This bash library provides a collection of production-ready shell scripts for system administration and Oracle database automation. All scripts follow consistent conventions, include comprehensive error handling, and integrate with a unified logging system.</p>
+            
+            <div class="quick-ref">
+                <h3>Library Highlights</h3>
+                <p>✓ <strong>Unified Logging:</strong> All scripts integrate with the loggy logging utility for consistent output</p>
+                <p>✓ <strong>Strict Error Handling:</strong> All scripts use <code>set -euo pipefail</code> for robust error management</p>
+                <p>✓ <strong>Consistent Naming:</strong> Functions use camelCase, local variables use <code>l_</code> prefix, globals use <code>GV_</code> prefix</p>
+                <p>✓ <strong>Well Documented:</strong> Each script includes header comments with parameters, requirements, and usage examples</p>
+                <p>✓ <strong>Production Quality:</strong> All scripts are version 1.0 stable and suitable for enterprise environments</p>
+            </div>
+        </section>
+        
+        <section id="scripts">
+            <h2>Available Scripts</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Script</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Dependencies</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="script-name">loggy.sh</span></td>
+                        <td>Flexible logging utility with 8 message types, priority filtering, file persistence, and ANSI color output</td>
+                        <td><span class="badge badge-stable">Stable</span></td>
+                        <td>bash, tput (optional)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="script-name">findOracleDatabases.sh</span></td>
+                        <td>Discover running Oracle databases on RHEL/OL systems with automatic ORACLE_HOME detection</td>
+                        <td><span class="badge badge-stable">Stable</span></td>
+                        <td><span class="dep-item">loggy.sh</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="script-name">ssh.sh</span></td>
+                        <td>Remote command execution with flexible authentication (password/key) and configurable timeouts</td>
+                        <td><span class="badge badge-stable">Stable</span></td>
+                        <td><span class="dep-item">loggy.sh</span> ssh</td>
+                    </tr>
+                    <tr>
+                        <td><span class="script-name">sqlToJson.sh</span></td>
+                        <td>Execute Oracle SQL queries and convert results to JSON with multiple connection options</td>
+                        <td><span class="badge badge-stable">Stable</span></td>
+                        <td><span class="dep-item">loggy.sh</span> sqlplus</td>
+                    </tr>
+                    <tr>
+                        <td><span class="script-name">jsonValue.sh</span></td>
+                        <td>Extract and manipulate JSON values with flexible filtering and transformation capabilities</td>
+                        <td><span class="badge badge-stable">Stable</span></td>
+                        <td><span class="dep-item">loggy.sh</span> jq</td>
+                    </tr>
+                    <tr>
+                        <td><span class="script-name">updateOratab.sh</span></td>
+                        <td>Monitor Oracle databases and automatically update /etc/oratab with current instance status and state changes</td>
+                        <td><span class="badge badge-stable">Stable</span></td>
+                        <td><span class="dep-item">loggy.sh</span> sudo, root</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        
+        <section id="usage">
+            <h2>Usage Guide</h2>
+            
+            <h3>Basic Integration</h3>
+            <p>To use these scripts in your automation, source them in your own bash scripts:</p>
+            
+            <div class="code-block">
+                <button class="copy-btn" data-copy="source /path/to/bash_library/loggy.sh&#10;source /path/to/bash_library/findOracleDatabases.sh">Copy</button>
+                <pre><code>source /path/to/bash_library/loggy.sh
+source /path/to/bash_library/findOracleDatabases.sh
+
+# Your code here
+findOracleDatabases --output table</code></pre>
+            </div>
+            
+            <h3>Logging Example</h3>
+            <p>The loggy utility provides consistent logging across all scripts:</p>
+            
+            <div class="code-block">
+                <button class="copy-btn" data-copy="loggy --info &#34;Application started&#34;&#10;loggy --debug &#34;Processing database: $db_name&#34;&#10;loggy --error &#34;Connection failed&#34;&#10;loggy --warning &#34;Retry attempt 1/3&#34;">Copy</button>
+                <pre><code>loggy --info "Application started"
+loggy --debug "Processing database: $db_name"
+loggy --error "Connection failed"
+loggy --warning "Retry attempt 1/3"</code></pre>
+            </div>
+            
+            <h3>Finding Databases</h3>
+            <p>Discover and enumerate Oracle databases on your system:</p>
+            
+            <div class="code-block">
+                <button class="copy-btn" data-copy="# List all running databases&#10;findOracleDatabases --output table&#10;&#10;# Get JSON output for automation&#10;findOracleDatabases --output json&#10;&#10;# Enable verbose logging&#10;findOracleDatabases --verbose">Copy</button>
+                <pre><code># List all running databases
+findOracleDatabases --output table
+
+# Get JSON output for automation
+findOracleDatabases --output json
+
+# Enable verbose logging
+findOracleDatabases --verbose</code></pre>
+            </div>
+            
+            <h3>Continuous Monitoring (30-second intervals)</h3>
+            <p>Enable continuous instance monitoring with configurable check intervals:</p>
+            
+            <div class="code-block">
+                <button class="copy-btn" data-copy="# Continuous monitoring every 30 seconds\n./updateOratab.sh --monitor --interval 30 --verbose">Copy</button>
+                <pre><code># Continuous monitoring every 30 seconds
+./updateOratab.sh --monitor --interval 30 --verbose</code></pre>
+            </div>
+            
+            <div class="code-block">
+                <button class="copy-btn" data-copy="# SSH with key authentication&#10;ssh --host oracle-server.local --command &#34;ps -ef | grep pmon&#34;&#10;&#10;# SSH with password authentication&#10;ssh --host oracle-server.local --user oracle --password &#34;secret&#34; --command &#34;sqlplus -v&#34;&#10;&#10;# Custom port and timeout&#10;ssh --host oracle-server.local --port 2222 --timeout 600 --command &#34;ls -la /u01/oradata&#34;">Copy</button>
+                <pre><code># SSH with key authentication
+ssh --host oracle-server.local --command "ps -ef | grep pmon"
+
+# SSH with password authentication
+ssh --host oracle-server.local --user oracle --password "secret" --command "sqlplus -v"
+
+# Custom port and timeout
+ssh --host oracle-server.local --port 2222 --timeout 600 --command "ls -la /u01/oradata"</code></pre>
+            </div>
+            
+            <h3>Install Systemd Timer (requires sudo)</h3>
+            <p>Install automatic database monitoring via systemd timer for persistent background updates:</p>
+            
+            <div class="code-block">
+                <button class="copy-btn" data-copy="# Install systemd timer for 2-minute updates\nsudo ./updateOratab.sh --install-timer --timer-interval 120\n\n# Check timer status\nsudo systemctl status updateOratab.timer">Copy</button>
+                <pre><code># Install systemd timer for 2-minute updates
+sudo ./updateOratab.sh --install-timer --timer-interval 120
+
+# Check timer status
+sudo systemctl status updateOratab.timer</code></pre>
+            </div>
+            
+            <h3>SQL Query Execution</h3>
+            <p>Execute Oracle queries and retrieve results as JSON:</p>
+            
+            <div class="code-block">
+                <button class="copy-btn" data-copy="# Simple connection&#10;sqlToJson --sid ORCL --query &#34;SELECT count(*) as db_count FROM v\\$database&#34;&#10;&#10;# Pre-built connection string&#10;sqlToJson --connection-string &#34;oracle-admin/secret@oracle-server:1521/ORCL&#34; --query &#34;SELECT * FROM v\\$database&#34;">Copy</button>
+                <pre><code># Simple connection
+sqlToJson --sid ORCL --query "SELECT count(*) as db_count FROM v$database"
+
+# Pre-built connection string
+sqlToJson --connection-string "oracle-admin/secret@oracle-server:1521/ORCL" --query "SELECT * FROM v$database"</code></pre>
+            </div>
+            
+            <a href="#top" class="back-to-top">↑ Back to top</a>
+        </section>
+        
+        <section id="documentation">
+            <h2>Full Documentation</h2>
+            <p>For comprehensive documentation including detailed parameters, return codes, advanced usage patterns, and integration examples, please refer to the full reference documentation:</p>
+            
+            <div class="docs-link">
+                <a href="SCRIPTS.html">📖 Complete Script Reference</a>
+            </div>
+            
+            <p>The full documentation includes:</p>
+            <ul style="margin-left: 20px;">
+                <li>Detailed parameter descriptions for each script</li>
+                <li>Complete list of return codes and error conditions</li>
+                <li>Advanced usage patterns and integration guides</li>
+                <li>Real-world examples and best practices</li>
+                <li>Troubleshooting and FAQ sections</li>
+            </ul>
+            
+            <p>You can also access the markdown version at <code>SCRIPTS.md</code> for integration with documentation systems.</p>
+        </section>
+    </main>
+    
+    <footer>
+        <p>Bash Library v1.0 | <a href="SCRIPTS.html">Full Reference</a> | Last updated: 2024</p>
+    </footer>
+    
+    <script>
+        // Copy-to-clipboard functionality
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const text = this.getAttribute('data-copy');
+                try {
+                    await navigator.clipboard.writeText(text);
+                    const originalText = this.textContent;
+                    this.textContent = '✓ Copied!';
+                    this.classList.add('copied');
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                }
+            });
+            
+            // Keyboard accessibility
+            btn.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

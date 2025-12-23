@@ -1,0 +1,2003 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Complete reference documentation for bash library scripts" />
+    <meta name="color-scheme" content="light dark" />
+    <meta property="og:title" content="Bash Library Scripts - Complete Reference" />
+    <meta property="og:description" content="Production-ready bash utilities for system administration and database automation" />
+    <meta property="og:type" content="website" />
+    <title>Bash Library Scripts - Complete Reference</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Bash Library Scripts - Complete Reference</h1>
+        <p>Production-ready bash utilities for system administration and database automation</p>
+    </header>
+    
+    <main>
+        <!-- Table of Contents -->
+        <nav class="toc">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#loggy">loggy.sh</a></li>
+                <li><a href="#findOracle">findOracleDatabases.sh</a></li>
+                <li><a href="#ssh">ssh.sh</a></li>
+                <li><a href="#sqlToJson">sqlToJson.sh</a></li>
+                <li><a href="#updateOratab">updateOratab.sh</a></li>
+                <li><a href="#patterns">Integration Patterns</a></li>
+                <li><a href="#guidelines">Development Guidelines</a></li>
+            </ul>
+        </nav>
+        
+        <!-- LOGGY -->
+            <section id="loggy">
+                <h2>loggy.sh</h2>
+                <span class="status-badge">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Flexible logging utility providing categorized message output with optional file persistence and log level filtering. Supports 8 message types with priority-based filtering, ANSI color codes for terminal output, and persistent file logging.</p>
+                
+                <h3>Dependencies</h3>
+                <ul>
+                    <li><strong>bash</strong> - Bash shell environment</li>
+                    <li><strong>date</strong> - Date/time utilities</li>
+                    <li><strong>mkdir</strong> - Directory creation</li>
+                </ul>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--type</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Message type: error, fail, success, output, beginend, variable, command, debug</td>
+                        </tr>
+                        <tr>
+                            <td><code>--message</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Message text to log</td>
+                        </tr>
+                        <tr>
+                            <td><code>--file</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_LOGFILE</code></td>
+                            <td>File path to append log output</td>
+                        </tr>
+                        <tr>
+                            <td><code>--quiet</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>false</td>
+                            <td>Suppress screen output while preserving file output</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>loggy --type error --message "Database connection failed"</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>GV_LOGFILE="/var/log/app.log"
+loggy --type success --message "Backup completed successfully"</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>loggy --type debug --message "Variable X=42" \
+    --file /tmp/debug.log --level debug</code></pre>
+                </div>
+                
+                <h3>Error Handling</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Exit Code</th>
+                            <th>Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>Success</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Missing required parameter (--type or --message)</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Invalid log type or log level</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <a href="#" class="back-to-top">↑ Back to Top</a>
+            </section>
+            
+            <!-- FINDORACLEDATABASES -->
+            <section id="findOracle">
+                <h2>findOracleDatabases.sh</h2>
+                <span class="status-badge">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Identifies all running Oracle databases on a RHEL/Oracle Linux server and displays their Oracle Home directories, user ownership, and process IDs. Supports table and JSON output formats with verbose debugging.</p>
+                
+                <h3>Dependencies</h3>
+                <ul>
+                    <li><strong>RHEL/OL</strong> - RHEL or Oracle Linux system</li>
+                    <li><strong>ps</strong> - Process listing utility</li>
+                    <li><strong>grep, awk</strong> - Text processing tools</li>
+                </ul>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--output-format</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td>table</td>
+                            <td>Output format: 'table' or 'json'</td>
+                        </tr>
+                        <tr>
+                            <td><code>--verbose</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>false</td>
+                            <td>Enable verbose output for debugging</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>./findOracleDatabases.sh</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>./findOracleDatabases.sh --output-format json</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>./findOracleDatabases.sh --output-format json | \
+  jq '.[] | select(.database == "ORCL")'</code></pre>
+                </div>
+                
+                <h3>Error Handling</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Exit Code</th>
+                            <th>Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>Success; database(s) found and displayed</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Environment validation failed</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>No running Oracle databases found</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <a href="#" class="back-to-top">↑ Back to Top</a>
+            </section>
+            
+            <!-- SSH -->
+            <section id="ssh">
+                <h2>ssh.sh</h2>
+                <span class="status-badge">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Remote SSH command execution utility with support for both password and key-based authentication, configurable timeout, and flexible parameter precedence.</p>
+                
+                <h3>Dependencies</h3>
+                <ul>
+                    <li><strong>ssh</strong> - OpenSSH client</li>
+                    <li><strong>sshpass</strong> - Optional, for password authentication</li>
+                    <li><strong>loggy.sh</strong> - Logging utility</li>
+                </ul>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--username</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Remote server username</td>
+                        </tr>
+                        <tr>
+                            <td><code>--hostname</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Remote server hostname or IP</td>
+                        </tr>
+                        <tr>
+                            <td><code>--command</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Command to execute remotely</td>
+                        </tr>
+                        <tr>
+                            <td><code>--password</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_SSH_PASSWORD</code></td>
+                            <td>Password for authentication</td>
+                        </tr>
+                        <tr>
+                            <td><code>--keyfile</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_SSH_KEYFILE</code></td>
+                            <td>Path to SSH private key</td>
+                        </tr>
+                        <tr>
+                            <td><code>--port</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_SSH_PORT</code></td>
+                            <td>SSH port (default: 22)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>runSshCommand --username admin --hostname 192.168.1.10 \
+              --command "uptime" --keyfile ~/.ssh/server_key</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>runSshCommand --username root --hostname example.com \
+              --command "df -h" --password "secretpass123"</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>export GV_SSH_KEYFILE="/home/user/.ssh/prod_key"
+export GV_SSH_PORT="2222"
+runSshCommand --username deploy --hostname prod.server.com \
+              --command "systemctl status nginx"</code></pre>
+                </div>
+                
+                <h3>Error Handling</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Exit Code</th>
+                            <th>Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>Command executed successfully</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Missing required parameter or validation failure</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>SSH connection failed or remote command error</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Command execution timeout</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <a href="#" class="back-to-top">↑ Back to Top</a>
+            </section>
+            
+            <!-- SQLTOJSON -->
+            <section id="sqlToJson">
+                <h2>sqlToJson.sh</h2>
+                <span class="status-badge">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Execute Oracle SQL queries and convert results to JSON format with optional file output. Supports component-based connection strings or pre-built connection strings, automatic SQL cleanup, and flexible database connection options.</p>
+                
+                <h3>Dependencies</h3>
+                <ul>
+                    <li><strong>sqlplus</strong> - Oracle database client</li>
+                    <li><strong>ORACLE_HOME</strong> - Oracle installation path</li>
+                    <li><strong>loggy.sh</strong> - Logging utility</li>
+                </ul>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--sql</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Oracle SQL query to execute</td>
+                        </tr>
+                        <tr>
+                            <td><code>--username</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_USERNAME</code></td>
+                            <td>Oracle username (default: 'sys')</td>
+                        </tr>
+                        <tr>
+                            <td><code>--password</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_PASSWORD</code></td>
+                            <td>Oracle password</td>
+                        </tr>
+                        <tr>
+                            <td><code>--hostname</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_HOST</code></td>
+                            <td>Oracle host/server</td>
+                        </tr>
+                        <tr>
+                            <td><code>--port</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_PORT</code></td>
+                            <td>Oracle listener port</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>sqlToJson --sql "SELECT * FROM v\$version" \
+           --password oracle_password</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>sqlToJson --sql "SELECT * FROM employees" \
+           --username scott --password tiger --sid ORCL</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>sqlToJson --sql "SELECT id, name, salary FROM employees" \
+           --password pass123
+echo "$GV_SQL_RESULT_JSON" | \
+  jq '.[] | select(.salary > 50000) | {name, salary}'</code></pre>
+                </div>
+                
+                <h3>Error Handling</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Exit Code</th>
+                            <th>Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>Success</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Missing --sql parameter</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Database connection failure</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Query execution error</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <a href="#" class="back-to-top">↑ Back to Top</a>
+            </section>
+            
+            <!-- UPDATEORATAB -->
+            <section id="updateOratab">
+                <h2>updateOratab.sh</h2>
+                <span class="status-badge">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Monitor Oracle databases (CDB and PDB instances) and automatically update the <code>/etc/oratab</code> file to reflect running instances. Ensures accurate database instance tracking across system restarts and state changes. Includes exclusive locking to prevent concurrent executions.</p>
+                
+                <h3>Dependencies</h3>
+                <ul>
+                    <li><strong>bash</strong> - Bash shell environment</li>
+                    <li><strong>root/sudo</strong> - Root privileges required for /etc/oratab modifications</li>
+                    <li><strong>ps, grep, awk, sed</strong> - Process inspection and text processing</li>
+                    <li><strong>loggy.sh</strong> - Logging utility (optional, fallback available)</li>
+                    <li><strong>/var/run</strong> - Writable directory for lock file</li>
+                </ul>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--monitor</code></td>
+                            <td>flag</td>
+                            <td>false</td>
+                            <td>Enable continuous monitoring mode with periodic checks</td>
+                        </tr>
+                        <tr>
+                            <td><code>--interval</code></td>
+                            <td>integer (seconds)</td>
+                            <td>60</td>
+                            <td>Seconds between instance checks (requires --monitor)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--update-once</code></td>
+                            <td>flag</td>
+                            <td>false</td>
+                            <td>Perform single update pass and exit</td>
+                        </tr>
+                        <tr>
+                            <td><code>--verbose</code></td>
+                            <td>flag</td>
+                            <td>false</td>
+                            <td>Enable verbose debug output</td>
+                        </tr>
+                        <tr>
+                            <td><code>--dry-run</code></td>
+                            <td>flag</td>
+                            <td>false</td>
+                            <td>Show what would be updated without modifying /etc/oratab</td>
+                        </tr>
+                        <tr>
+                            <td><code>--help</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>Display help message</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Global Variables</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Default</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>GV_MONITOR_MODE</code></td>
+                            <td>false</td>
+                            <td>Enable continuous monitoring</td>
+                        </tr>
+                        <tr>
+                            <td><code>GV_CHECK_INTERVAL</code></td>
+                            <td>60</td>
+                            <td>Seconds between periodic checks</td>
+                        </tr>
+                        <tr>
+                            <td><code>GV_VERBOSE</code></td>
+                            <td>false</td>
+                            <td>Verbose output flag</td>
+                        </tr>
+                        <tr>
+                            <td><code>GV_ORATAB_FILE</code></td>
+                            <td>/etc/oratab</td>
+                            <td>Target file for updates</td>
+                        </tr>
+                        <tr>
+                            <td><code>GV_ORATAB_LOCK_FILE</code></td>
+                            <td>/var/run/updateOratab.lock</td>
+                            <td>Lock file for mutual exclusion</td>
+                        </tr>
+                        <tr>
+                            <td><code>GV_RUNNING_INSTANCES</code></td>
+                            <td>()</td>
+                            <td>Array of detected running instances</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                
+                <h4>Single Update Pass</h4>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>sudo ./updateOratab.sh --update-once</code></pre>
+                </div>
+                
+                <h4>Continuous Monitoring (30-second intervals)</h4>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>sudo ./updateOratab.sh --monitor --interval 30 --verbose</code></pre>
+                </div>
+                
+                <h4>Preview Changes Without Applying</h4>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>sudo ./updateOratab.sh --update-once --dry-run</code></pre>
+                </div>
+                
+                <h4>Cron-Based Hourly Updates</h4>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code># Add to /etc/crontab:
+0 * * * * root /opt/bash_library/updateOratab.sh --update-once</code></pre>
+                </div>
+                
+                <h3>Features</h3>
+                <ul>
+                    <li><strong>Mutual Exclusion:</strong> Prevents concurrent script executions via PID-based lock file</li>
+                    <li><strong>Stale Lock Detection:</strong> Removes and replaces stale lock files from crashed instances</li>
+                    <li><strong>Instance Detection:</strong> Queries pmon processes to find all running Oracle databases</li>
+                    <li><strong>Status Tracking:</strong> Updates Y/N flags in oratab based on running state</li>
+                    <li><strong>New Instance Addition:</strong> Automatically adds newly discovered instances to oratab</li>
+                    <li><strong>ORACLE_HOME Discovery:</strong> Attempts to locate ORACLE_HOME for new instances</li>
+                    <li><strong>Backup Creation:</strong> Creates timestamped backups before file modifications</li>
+                    <li><strong>Dry-run Mode:</strong> Preview changes without applying them</li>
+                </ul>
+                
+                <h3>Exit Codes</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Condition</th>
+                            <th>Resolution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>Successful execution</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Another instance already running</td>
+                            <td>Wait for lock release or check PID</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Not running as root</td>
+                            <td>Use sudo or run as root user</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>/etc/oratab not found</td>
+                            <td>Create /etc/oratab or verify Oracle installation</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Invalid parameter value</td>
+                            <td>Review parameter syntax with --help</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <a href="#" class="back-to-top">↑ Back to Top</a>
+            </section>
+            
+            <!-- INTEGRATION PATTERNS -->
+            <section id="patterns">
+                <h2>Integration Patterns</h2>
+                
+                <h3>Pattern 1: Discover and Query Databases</h3>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>#!/bin/bash
+source bash_library/findOracleDatabases.sh
+source bash_library/ssh.sh
+source bash_library/sqlToJson.sh
+
+# Find all local databases
+findOracleDatabases --output-format json | \
+  jq -r '.[] | .database' | while read db; do
+    echo "Database: $db"
+done</code></pre>
+                </div>
+                
+                <h3>Pattern 2: Remote Query with Local Parsing</h3>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>#!/bin/bash
+source bash_library/ssh.sh
+source bash_library/sqlToJson.sh
+
+# Execute SQL on remote server
+runSshCommand --username oracle --hostname prod_db \
+              --command "sqlplus -s sys/pass@PROD @query.sql" \
+              --keyfile ~/.ssh/prod_key</code></pre>
+                </div>
+                
+                <h3>Pattern 3: Bulk Operations with Logging</h3>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>#!/bin/bash
+source bash_library/loggy.sh
+source bash_library/ssh.sh
+
+GV_LOGFILE="/var/log/batch_ops.log"
+
+for server in server1 server2 server3; do
+    if runSshCommand --username admin --hostname "$server" \
+                     --command "systemctl status nginx" \
+                     --keyfile ~/.ssh/admin_key; then
+        loggy --type success --message "Server $server is healthy"
+    else
+        loggy --type fail --message "Server $server health check failed"
+    fi
+done</code></pre>
+                </div>
+                
+                <a href="#" class="back-to-top">↑ Back to Top</a>
+            </section>
+            
+            <!-- GUIDELINES -->
+            <section id="guidelines">
+                <h2>Development Guidelines</h2>
+                
+                <h3>Header Comment Block Requirements</h3>
+                <p>All scripts must include a documentation comment block immediately after the shebang line with the following structure:</p>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre><code>#!/bin/bash
+###############################################################################
+# Script: scriptname.sh
+#
+# Description: 1-2 sentence explanation of functionality
+#
+# Input Parameters:
+#   --param-name (type): Description
+#
+# Requirements:
+#   - List of dependencies and requirements
+#
+# Examples:
+#   ./scriptname.sh --option value
+#
+# Copyright © 2025 SolidWorks Consulting LLC. All rights reserved.
+###############################################################################</code></pre>
+                </div>
+                
+                <h3>Naming Conventions</h3>
+                <ul>
+                    <li><strong>Functions:</strong> camelCase (e.g., <code>runSshCommand</code>, <code>validateKeyfile</code>)</li>
+                    <li><strong>Local variables:</strong> lowercase with <code>l_</code> prefix (e.g., <code>l_username</code>)</li>
+                    <li><strong>Global variables:</strong> UPPERCASE with <code>GV_</code> prefix (e.g., <code>GV_LOGFILE</code>)</li>
+                    <li><strong>Constants:</strong> UPPERCASE (e.g., <code>RED_BRIGHT</code>)</li>
+                    <li><strong>Helper functions:</strong> Prefix with underscore (e.g., <code>_validateInput</code>)</li>
+                </ul>
+                
+                <h3>Parameter Precedence</h3>
+                <p>Parameters are evaluated in this order (highest to lowest priority):</p>
+                <ol>
+                    <li>Runtime named parameters (e.g., <code>--port 2222</code>)</li>
+                    <li>Global variables (e.g., <code>GV_SSH_PORT</code>)</li>
+                    <li>Constants from constants.sh</li>
+                    <li>Explicit defaults in code</li>
+                </ol>
+                
+                <h3>Error Handling</h3>
+                <ul>
+                    <li>All scripts must use <code>set -euo pipefail</code></li>
+                    <li>Define meaningful exit codes for different error conditions</li>
+                    <li>Use loggy for consistent error reporting</li>
+                    <li>Quote all variables to prevent word splitting</li>
+                </ul>
+                
+                <h3>Logging Best Practices</h3>
+                <ul>
+                    <li>Source loggy.sh at script start</li>
+                    <li>Log beginend for function start/completion</li>
+                    <li>Log debug for subfunction calls</li>
+                    <li>Use appropriate log types (error, fail, success, output, etc.)</li>
+                    <li>Set <code>GV_LOGFILE</code> for persistent logging</li>
+                </ul>
+                
+                <p><strong>For complete guidelines:</strong> See <code>.github/instructions/sh.instruction.md</code></p>
+                
+                <a href="#" class="back-to-top">↑ Back to Top</a>
+            </section>
+        </main>
+        
+        <footer>
+            <p>© 2025 SolidWorks Consulting LLC. All rights reserved.</p>
+            <p>These scripts are free to use with proper attribution to the source.</p>
+        </footer>
+    </div>
+    
+    <script>
+        function copyToClipboard(button) {
+            const codeBlock = button.nextElementSibling;
+            const code = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                button.textContent = 'Copy failed';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+        
+        // Keyboard accessibility for copy button
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    copyToClipboard(btn);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #0ea5e9;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --bg-light: #f9fafb;
+            --bg-lighter: #f3f4f6;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg-light);
+        }
+        
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar Navigation */
+        aside {
+            width: 280px;
+            background: white;
+            border-right: 1px solid var(--border);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+        }
+        
+        aside h2 {
+            font-size: 1.3em;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        aside nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        aside nav a {
+            display: block;
+            padding: 10px 12px;
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 0.95em;
+            border-left: 3px solid transparent;
+        }
+        
+        aside nav a:hover {
+            background: var(--bg-lighter);
+            color: var(--primary);
+        }
+        
+        aside nav a.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-left-color: white;
+        }
+        
+        /* Main Content */
+        main {
+            flex: 1;
+            margin-left: 280px;
+            padding: 40px;
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 40px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.1);
+        }
+        
+        .page-header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        
+        .page-header p {
+            font-size: 1.05em;
+            opacity: 0.95;
+        }
+        
+        /* Sections */
+        section {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            scroll-margin-top: 100px;
+        }
+        
+        section h2 {
+            font-size: 1.8em;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--primary);
+        }
+        
+        section h3 {
+            font-size: 1.3em;
+            color: var(--text);
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        section h3:first-child {
+            margin-top: 0;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .status-badge.stable {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-badge.beta {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-badge.experimental {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+        
+        table thead {
+            background: var(--bg-lighter);
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        table tbody tr:hover {
+            background: var(--bg-light);
+        }
+        
+        /* Code */
+        code {
+            background: var(--bg-lighter);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #d81b60;
+        }
+        
+        pre {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        
+        /* Info Boxes */
+        .info-box {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--border);
+        }
+        
+        .info-box.note {
+            background: #eff6ff;
+            border-left-color: var(--info);
+        }
+        
+        .info-box.warning {
+            background: #fffbeb;
+            border-left-color: var(--warning);
+        }
+        
+        .info-box.success {
+            background: #f0fdf4;
+            border-left-color: var(--success);
+        }
+        
+        .info-box.danger {
+            background: #fef2f2;
+            border-left-color: var(--danger);
+        }
+        
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        /* Tags */
+        .tag {
+            display: inline-block;
+            background: var(--bg-lighter);
+            color: var(--text-light);
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            margin: 2px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Dependencies */
+        .dep-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .dep-item {
+            background: var(--bg-lighter);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+        }
+        
+        .dep-item strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        /* Exit Codes */
+        .exit-codes {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .exit-code {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 15px;
+            padding: 10px;
+            background: var(--bg-lighter);
+            border-radius: 4px;
+        }
+        
+        .exit-code-num {
+            background: var(--primary);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .exit-code-desc {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        /* Examples */
+        .example {
+            background: var(--bg-lighter);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border-left: 3px solid var(--info);
+        }
+        
+        .example strong {
+            color: var(--info);
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        /* Lists */
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: var(--text);
+            color: white;
+            margin-left: 280px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .wrapper {
+                flex-direction: column;
+            }
+            
+            aside {
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            
+            main {
+                margin-left: 0;
+                padding: 20px;
+            }
+            
+            footer {
+                margin-left: 0;
+            }
+            
+            .page-header h1 {
+                font-size: 1.5em;
+            }
+            
+            section {
+                padding: 20px;
+            }
+            
+            aside nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            aside nav a {
+                flex: 1;
+                min-width: 150px;
+            }
+            
+            .dep-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.85em;
+            }
+            
+            table th, table td {
+                padding: 8px;
+            }
+        }
+        
+        /* Smooth transitions */
+        a, button {
+            transition: all 0.2s ease;
+        }
+        
+        /* Print styles */
+        @media print {
+            aside {
+                display: none;
+            }
+            
+            main {
+                margin-left: 0;
+            }
+            
+            footer {
+                margin-left: 0;
+            }
+            
+            section {
+                page-break-inside: avoid;
+            }
+        }
+    }
+
+        <aside>
+            <h2>📚 Scripts</h2>
+            <nav>
+                <a href="#loggy">loggy.sh</a>
+                <a href="#findOracle">findOracleDatabases.sh</a>
+                <a href="#ssh">ssh.sh</a>
+                <a href="#sqlToJson">sqlToJson.sh</a>
+                <a href="#patterns">Integration Patterns</a>
+                <a href="#guidelines">Guidelines</a>
+            </nav>
+        </aside>
+        
+        <main>
+            <div class="page-header">
+                <h1>📖 Bash Library Scripts - Complete Reference</h1>
+                <p>Production-ready bash utilities for system administration and database automation</p>
+            </div>
+            
+            <!-- LOGGY -->
+            <section id="loggy">
+                <h2>loggy.sh</h2>
+                <span class="status-badge stable">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Flexible logging utility providing categorized message output with optional file persistence and log level filtering. Supports 8 message types with priority-based filtering, ANSI color codes for terminal output, and persistent file logging.</p>
+                
+                <h3>Dependencies</h3>
+                <div class="dep-grid">
+                    <div class="dep-item">
+                        <strong>bash</strong>
+                        Bash shell environment
+                    </div>
+                    <div class="dep-item">
+                        <strong>date</strong>
+                        Date/time utilities
+                    </div>
+                    <div class="dep-item">
+                        <strong>mkdir</strong>
+                        Directory creation
+                    </div>
+                </div>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--type</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Message type: error, fail, success, output, beginend, variable, command, debug</td>
+                        </tr>
+                        <tr>
+                            <td><code>--message</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Message text to log</td>
+                        </tr>
+                        <tr>
+                            <td><code>--file</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_LOGFILE</code></td>
+                            <td>File path to append log output</td>
+                        </tr>
+                        <tr>
+                            <td><code>--level</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_LOGLEVEL</code></td>
+                            <td>Log level filter (output, debug, etc.)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--quiet</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>false</td>
+                            <td>Suppress screen output (preserves file output)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--help</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>Display help message</td>
+                        </tr>
+                        <tr>
+                            <td><code>--menu</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>Show interactive menu</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Global Variables</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Default</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>GV_LOGFILE</code></td>
+                            <td>"" (empty)</td>
+                            <td>Default log file path; if empty, logs to screen only</td>
+                        </tr>
+                        <tr>
+                            <td><code>GV_LOGLEVEL</code></td>
+                            <td>"output"</td>
+                            <td>Default log level filter</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Log Level Priority</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Priority</th>
+                            <th>Color</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>error</td>
+                            <td>1 (critical)</td>
+                            <td>Red</td>
+                            <td>System/function call errors</td>
+                        </tr>
+                        <tr>
+                            <td>fail</td>
+                            <td>2</td>
+                            <td>Red</td>
+                            <td>Process failures</td>
+                        </tr>
+                        <tr>
+                            <td>success</td>
+                            <td>3</td>
+                            <td>Green</td>
+                            <td>Successful completion</td>
+                        </tr>
+                        <tr>
+                            <td>output</td>
+                            <td>4 (default)</td>
+                            <td>—</td>
+                            <td>Normal process output</td>
+                        </tr>
+                        <tr>
+                            <td>beginend</td>
+                            <td>5</td>
+                            <td>—</td>
+                            <td>Function start/end markers</td>
+                        </tr>
+                        <tr>
+                            <td>variable</td>
+                            <td>6</td>
+                            <td>—</td>
+                            <td>Variable assignments</td>
+                        </tr>
+                        <tr>
+                            <td>command</td>
+                            <td>7</td>
+                            <td>—</td>
+                            <td>Command execution</td>
+                        </tr>
+                        <tr>
+                            <td>debug</td>
+                            <td>8 (verbose)</td>
+                            <td>—</td>
+                            <td>Detailed debug information</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                <div class="example">
+                    <strong>Basic error logging</strong>
+                    <pre><code>loggy --type error --message "Database connection failed"</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Logging with file output via global variable</strong>
+                    <pre><code>GV_LOGFILE="/var/log/app.log"
+loggy --type success --message "Backup completed successfully"</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Override global settings at runtime</strong>
+                    <pre><code>loggy --type debug --message "Variable X=42" \
+    --file /tmp/debug.log --level debug</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Quiet mode (file only, no screen output)</strong>
+                    <pre><code>loggy --type variable --message "Internal state" \
+    --file app.log --quiet</code></pre>
+                </div>
+                
+                <h3>Error Handling</h3>
+                <div class="exit-codes">
+                    <div class="exit-code">
+                        <div class="exit-code-num">0</div>
+                        <div class="exit-code-desc">Success</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">1</div>
+                        <div class="exit-code-desc">Missing required parameter (--type or --message)</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">1</div>
+                        <div class="exit-code-desc">Invalid log type or log level</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- FINDORACLEDATABASES -->
+            <section id="findOracle">
+                <h2>findOracleDatabases.sh</h2>
+                <span class="status-badge stable">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Identifies all running Oracle databases on a RHEL/Oracle Linux server and displays their Oracle Home directories, user ownership, and process IDs. Supports table and JSON output formats with verbose debugging.</p>
+                
+                <h3>Dependencies</h3>
+                <div class="dep-grid">
+                    <div class="dep-item">
+                        <strong>RHEL/OL</strong>
+                        RHEL or Oracle Linux system
+                    </div>
+                    <div class="dep-item">
+                        <strong>ps</strong>
+                        Process listing utility
+                    </div>
+                    <div class="dep-item">
+                        <strong>grep, awk</strong>
+                        Text processing tools
+                    </div>
+                </div>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--output-format</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td>table</td>
+                            <td>Output format: 'table' or 'json'</td>
+                        </tr>
+                        <tr>
+                            <td><code>--verbose</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>false</td>
+                            <td>Enable verbose output for debugging</td>
+                        </tr>
+                        <tr>
+                            <td><code>--help</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>Display help message</td>
+                        </tr>
+                        <tr>
+                            <td><code>--menu</code></td>
+                            <td>flag</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>Display interactive menu</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                <div class="example">
+                    <strong>Display all running Oracle databases (default table format)</strong>
+                    <pre><code>./findOracleDatabases.sh</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Output as JSON for programmatic processing</strong>
+                    <pre><code>./findOracleDatabases.sh --output-format json</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Enable verbose output with debugging information</strong>
+                    <pre><code>./findOracleDatabases.sh --verbose</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Integration example: Parse JSON output</strong>
+                    <pre><code>./findOracleDatabases.sh --output-format json | \
+  jq '.[] | select(.database == "ORCL")'</code></pre>
+                </div>
+                
+                <h3>Error Handling</h3>
+                <div class="exit-codes">
+                    <div class="exit-code">
+                        <div class="exit-code-num">0</div>
+                        <div class="exit-code-desc">Success; database(s) found and displayed</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">1</div>
+                        <div class="exit-code-desc">Environment validation failed (not RHEL/OL, missing commands)</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">2</div>
+                        <div class="exit-code-desc">No running Oracle databases found</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- SSH -->
+            <section id="ssh">
+                <h2>ssh.sh</h2>
+                <span class="status-badge stable">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Remote SSH command execution utility with support for both password and key-based authentication, configurable timeout, and flexible parameter precedence (runtime → global variables → constants → defaults).</p>
+                
+                <h3>Dependencies</h3>
+                <div class="dep-grid">
+                    <div class="dep-item">
+                        <strong>ssh</strong>
+                        OpenSSH client
+                    </div>
+                    <div class="dep-item">
+                        <strong>sshpass</strong>
+                        Optional, for password auth
+                    </div>
+                    <div class="dep-item">
+                        <strong>loggy.sh</strong>
+                        Logging utility
+                    </div>
+                </div>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--username</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Remote server username</td>
+                        </tr>
+                        <tr>
+                            <td><code>--hostname</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Remote server hostname or IP address</td>
+                        </tr>
+                        <tr>
+                            <td><code>--command</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Command to execute on remote server</td>
+                        </tr>
+                        <tr>
+                            <td><code>--password</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_SSH_PASSWORD</code></td>
+                            <td>Password for authentication (requires sshpass)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--keyfile</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_SSH_KEYFILE</code></td>
+                            <td>Path to SSH private key file</td>
+                        </tr>
+                        <tr>
+                            <td><code>--port</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_SSH_PORT</code></td>
+                            <td>SSH port (default: 22)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--timeout</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_SSH_TIMEOUT</code></td>
+                            <td>Command timeout in seconds (default: 300)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                <div class="example">
+                    <strong>Using SSH key (most secure)</strong>
+                    <pre><code>runSshCommand --username admin --hostname 192.168.1.10 \
+              --command "uptime" --keyfile ~/.ssh/server_key</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Using password authentication</strong>
+                    <pre><code>runSshCommand --username root --hostname example.com \
+              --command "df -h" --password "secretpass123"</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Using global variables for common server</strong>
+                    <pre><code>export GV_SSH_KEYFILE="/home/user/.ssh/prod_key"
+export GV_SSH_PORT="2222"
+runSshCommand --username deploy --hostname prod.server.com \
+              --command "systemctl status nginx"</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>With custom timeout</strong>
+                    <pre><code>runSshCommand --username root --hostname backup.local \
+              --command "tar -czf backup.tar.gz /data" \
+              --timeout 1800 --keyfile ~/.ssh/backup_key</code></pre>
+                </div>
+                
+                <h3>Error Handling</h3>
+                <div class="exit-codes">
+                    <div class="exit-code">
+                        <div class="exit-code-num">0</div>
+                        <div class="exit-code-desc">Command executed successfully</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">1</div>
+                        <div class="exit-code-desc">Missing required parameter or validation failure</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">2</div>
+                        <div class="exit-code-desc">SSH connection failed or remote command error</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">3</div>
+                        <div class="exit-code-desc">Command execution timeout</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- SQLTOJSON -->
+            <section id="sqlToJson">
+                <h2>sqlToJson.sh</h2>
+                <span class="status-badge stable">Stable v1.0</span>
+                <p><strong>Last Modified:</strong> December 21, 2025</p>
+                
+                <h3>Description</h3>
+                <p>Execute Oracle SQL queries and convert results to JSON format with optional file output. Supports component-based connection strings or pre-built connection strings, automatic SQL cleanup, and flexible database connection options.</p>
+                
+                <h3>Dependencies</h3>
+                <div class="dep-grid">
+                    <div class="dep-item">
+                        <strong>sqlplus</strong>
+                        Oracle database client
+                    </div>
+                    <div class="dep-item">
+                        <strong>ORACLE_HOME</strong>
+                        Oracle installation path
+                    </div>
+                    <div class="dep-item">
+                        <strong>loggy.sh</strong>
+                        Logging utility
+                    </div>
+                </div>
+                
+                <h3>Input Parameters</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--sql</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>—</td>
+                            <td>Oracle SQL query to execute (auto-cleaned)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--username</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_USERNAME</code></td>
+                            <td>Oracle username (default: 'sys')</td>
+                        </tr>
+                        <tr>
+                            <td><code>--password</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_PASSWORD</code></td>
+                            <td>Oracle password</td>
+                        </tr>
+                        <tr>
+                            <td><code>--hostname</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_HOST</code></td>
+                            <td>Oracle host/server (default: 'localhost')</td>
+                        </tr>
+                        <tr>
+                            <td><code>--port</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_PORT</code></td>
+                            <td>Oracle listener port (default: '1521')</td>
+                        </tr>
+                        <tr>
+                            <td><code>--sid</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_SID</code></td>
+                            <td>Oracle SID (e.g., ORCL, XE)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--service-name</code></td>
+                            <td>string</td>
+                            <td>—</td>
+                            <td><code>$GV_DB_SERVICE_NAME</code></td>
+                            <td>Oracle Service Name (preferred over SID)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Usage Examples</h3>
+                <div class="example">
+                    <strong>Basic query with default sys/sysdba</strong>
+                    <pre><code>sqlToJson --sql "SELECT * FROM v\$version" \
+           --password oracle_password</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Query specific user</strong>
+                    <pre><code>sqlToJson --sql "SELECT * FROM employees" \
+           --username scott --password tiger --sid ORCL</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Remote Oracle server with service name</strong>
+                    <pre><code>sqlToJson --sql "SELECT * FROM products" \
+           --hostname db.example.com --port 1521 \
+           --service-name prod_orcl.example.com \
+           --username admin --password secret</code></pre>
+                </div>
+                
+                <div class="example">
+                    <strong>Parse and filter JSON result</strong>
+                    <pre><code>sqlToJson --sql "SELECT id, name, salary FROM employees" \
+           --password pass123
+echo "$GV_SQL_RESULT_JSON" | \
+  jq '.[] | select(.salary > 50000) | {name, salary}'</code></pre>
+                </div>
+                
+                <h3>Error Handling</h3>
+                <div class="exit-codes">
+                    <div class="exit-code">
+                        <div class="exit-code-num">0</div>
+                        <div class="exit-code-desc">Success</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">1</div>
+                        <div class="exit-code-desc">Missing --sql parameter</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">2</div>
+                        <div class="exit-code-desc">Database connection failure (invalid credentials, unreachable host)</div>
+                    </div>
+                    <div class="exit-code">
+                        <div class="exit-code-num">3</div>
+                        <div class="exit-code-desc">Query execution error (syntax error, table not found)</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- INTEGRATION PATTERNS -->
+            <section id="patterns">
+                <h2>Integration Patterns</h2>
+                
+                <h3>Pattern 1: Discover and Query Databases</h3>
+                <pre><code>#!/bin/bash
+source bash_library/findOracleDatabases.sh
+source bash_library/ssh.sh
+source bash_library/sqlToJson.sh
+
+# Find all local databases
+findOracleDatabases --output-format json | \
+  jq -r '.[] | .database' | while read db; do
+    echo "Database: $db"
+done</code></pre>
+                
+                <h3>Pattern 2: Remote Query with Local Parsing</h3>
+                <pre><code>#!/bin/bash
+source bash_library/ssh.sh
+source bash_library/sqlToJson.sh
+source bash_library/jsonValue.sh
+
+# Execute SQL on remote server
+runSshCommand --username oracle --hostname prod_db \
+              --command "sqlplus -s sys/pass@PROD @query.sql" \
+              --keyfile ~/.ssh/prod_key</code></pre>
+                
+                <h3>Pattern 3: Bulk Operations with Logging</h3>
+                <pre><code>#!/bin/bash
+source bash_library/loggy.sh
+source bash_library/ssh.sh
+
+GV_LOGFILE="/var/log/batch_ops.log"
+
+for server in server1 server2 server3; do
+    if runSshCommand --username admin --hostname "$server" \
+                     --command "systemctl status nginx" \
+                     --keyfile ~/.ssh/admin_key; then
+        loggy --type success --message "Server $server is healthy"
+    else
+        loggy --type fail --message "Server $server health check failed"
+    fi
+done</code></pre>
+            </section>
+            
+            <!-- GUIDELINES -->
+            <section id="guidelines">
+                <h2>Script Development Guidelines</h2>
+                
+                <h3>Header Comment Block Requirements</h3>
+                <p>All scripts must include a documentation comment block immediately after the shebang line with the following structure:</p>
+                <pre><code>#!/bin/bash
+###############################################################################
+# Script: scriptname.sh
+#
+# Description: 1-2 sentence explanation of functionality
+#
+# Input Parameters:
+#   --param-name (type): Description
+#
+# Requirements:
+#   - List of dependencies and requirements
+#
+# Examples:
+#   ./scriptname.sh --option value
+#
+# Copyright © 2025 SolidWorks Consulting LLC. All rights reserved.
+###############################################################################</code></pre>
+                
+                <h3>Naming Conventions</h3>
+                <ul>
+                    <li><strong>Functions:</strong> camelCase (e.g., <code>runSshCommand</code>, <code>validateKeyfile</code>)</li>
+                    <li><strong>Local variables:</strong> lowercase with <code>l_</code> prefix (e.g., <code>l_username</code>, <code>l_output</code>)</li>
+                    <li><strong>Global variables:</strong> UPPERCASE with <code>GV_</code> prefix (e.g., <code>GV_LOGFILE</code>, <code>GV_SSH_PORT</code>)</li>
+                    <li><strong>Constants:</strong> UPPERCASE (e.g., <code>RED_BRIGHT</code>, <code>RESET</code>)</li>
+                    <li><strong>Helper functions:</strong> Prefix with underscore (e.g., <code>_validateInput</code>)</li>
+                </ul>
+                
+                <h3>Parameter Precedence</h3>
+                <p>Parameters are evaluated in this order (highest to lowest priority):</p>
+                <ol>
+                    <li>Runtime named parameters (e.g., <code>--port 2222</code>)</li>
+                    <li>Global variables (e.g., <code>GV_SSH_PORT</code>)</li>
+                    <li>Constants from constants.sh</li>
+                    <li>Explicit defaults in code</li>
+                </ol>
+                
+                <h3>Error Handling</h3>
+                <ul>
+                    <li>All scripts must use <code>set -euo pipefail</code></li>
+                    <li>Define meaningful exit codes for different error conditions</li>
+                    <li>Use loggy for consistent error reporting</li>
+                    <li>Quote all variables to prevent word splitting</li>
+                </ul>
+                
+                <h3>Logging Best Practices</h3>
+                <ul>
+                    <li>Source loggy.sh at script start</li>
+                    <li>Log beginend for function start/completion</li>
+                    <li>Log debug for subfunction calls</li>
+                    <li>Use appropriate log types (error, fail, success, output, etc.)</li>
+                    <li>Set <code>GV_LOGFILE</code> for persistent logging</li>
+                </ul>
+                
+                <div class="info-box success">
+                    <strong>For complete guidelines:</strong> See <code>.github/instructions/sh.instruction.md</code>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>© 2025 SolidWorks Consulting LLC. All rights reserved.</p>
+            <p style="margin-top: 10px; opacity: 0.8;">These scripts are free to use with proper attribution to the source.</p>
+        </footer>
+    </body>
+</html>

@@ -1,0 +1,4 @@
+{
+    "chat.agent.maxRequests": 50,
+    "oci.defaultProfileName": "DEFAULT"
+}

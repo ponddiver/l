@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Identifies all running Oracle databases on a RHEL/Oracle Linux server and displays their Oracle Home directories, user ownership, and process IDs." />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="findOracleDatabases.sh - Script Creation Instructions" />
+  <meta property="og:description" content="Discover Oracle databases via process monitoring and system inventory." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>findOracleDatabases.sh - Script Creation Instructions</title>
+</head>
+<body>
+  <header>
+    <main style="padding: 0 20px;">
+      <h1>findOracleDatabases.sh - Script Creation Instructions</h1>
+    </main>
+  </header>
+  <main>
+    <nav class="toc">
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#purpose">Script Purpose</a></li>
+        <li><a href="#requirements">Core Requirements</a></li>
+        <li><a href="#variables">Global Variables</a></li>
+        <li><a href="#cli">Command-Line Interface</a></li>
+        <li><a href="#output">Output Format</a></li>
+        <li><a href="#examples">Usage Examples</a></li>
+        <li><a href="#functions">Key Functions</a></li>
+        <li><a href="#methods">Detection Methods</a></li>
+        <li><a href="#design">Design Decisions</a></li>
+        <li><a href="#testing">Testing Checklist</a></li>
+        <li><a href="#platform">Platform Support</a></li>
+        <li><a href="#errors">Error Handling</a></li>
+        <li><a href="#deployment">Deployment Notes</a></li>
+        <li><a href="#enhancements">Future Enhancements</a></li>
+        <li><a href="#related">Related Scripts</a></li>
+        <li><a href="#practices">Best Practices</a></li>
+      </ul>
+    </nav>
+    <section class="section">
+      <h2 id="purpose">Script Purpose</h2>
+      <p>Identify all running Oracle databases on a RHEL/Oracle Linux server and display their Oracle Home directories, user ownership, and process IDs in table or JSON format.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="requirements">Core Requirements</h2>
+      <ul>
+        <li>Detect running Oracle database instances via pmon (Process Monitor) process identification</li>
+        <li>Extract database names from pmon process names</li>
+        <li>Discover Oracle Home directories from multiple sources (process environment, /etc/oratab, standard paths)</li>
+        <li>Identify Oracle username (owner) and process ID</li>
+        <li>Display results in table format by default</li>
+        <li>Support JSON output format for machine parsing</li>
+        <li>Include server hostname and timestamp in output</li>
+        <li>Support verbose debugging output</li>
+        <li>Handle RHEL/Oracle Linux detection</li>
+        <li>Gracefully fail if no databases are running</li>
+        <li>Integrate with loggy.sh for operation tracking</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="variables">Global Variables</h2>
+      <ul>
+        <li><strong>GV_OUTPUT_FORMAT:</strong> Output format - 'table' (default) or 'json'</li>
+        <li><strong>GV_VERBOSE:</strong> Enable verbose output - 'true' or 'false' (default)</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="cli">Command-Line Interface</h2>
+      <h3>Optional Parameters</h3>
+      <ul>
+        <li><code>--output-format FORMAT</code> - Set output format to 'table' (default) or 'json'</li>
+        <li><code>--verbose</code> - Enable verbose output for debugging</li>
+        <li><code>--help</code> - Display help message</li>
+        <li><code>--menu</code> - Display interactive menu</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="output">Output Format</h2>
+      <h3>Table Format (Default)</h3>
+      <p>Human-readable columnar format with 4 columns:</p>
+      <div style="position: relative;">
+        <pre><code>==========================================
+Oracle Databases Running on myserver
+==========================================
+DATABASE             ORACLE_HOME                                    USER            PID
+------------------------------------------
+ORCL                 /u01/app/oracle/product/19c                    oracle          5432
+TESTDB               /u01/app/oracle/product/21c                    oracle          6789
+==========================================[</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>JSON Format</h3>
+      <p>Machine-parseable JSON array with metadata:</p>
+      <div style="position: relative;">
+        <pre><code>[
+  {
+    "database": "ORCL",
+    "oracle_home": "/u01/app/oracle/product/19c",
+    "oracle_user": "oracle",
+    "pid": 5432,
+    "hostname": "myserver",
+    "timestamp": "2025-12-21T14:30:45Z"
+  },
+  {
+    "database": "TESTDB",
+    "oracle_home": "/u01/app/oracle/product/21c",
+    "oracle_user": "oracle",
+    "pid": 6789,
+    "hostname": "myserver",
+    "timestamp": "2025-12-21T14:30:45Z"
+  }
+]</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="examples">Usage Examples</h2>
+      <h3>Table Format (Default)</h3>
+      <div style="position: relative;">
+        <pre><code>./findOracleDatabases.sh</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>JSON Format</h3>
+      <div style="position: relative;">
+        <pre><code>./findOracleDatabases.sh --output-format json</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Verbose Output</h3>
+      <div style="position: relative;">
+        <pre><code>./findOracleDatabases.sh --verbose --output-format table</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>JSON with Verbose Debug</h3>
+      <div style="position: relative;">
+        <pre><code>./findOracleDatabases.sh --verbose --output-format json</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Using Output in Script</h3>
+      <div style="position: relative;">
+        <pre><code>#!/bin/bash
+source ./findOracleDatabases.sh
+
+# Get database list in JSON
+output=$(findOracleDatabases --output-format json)
+
+# Parse first database name with jq
+first_db=$(echo "$output" | jq -r '.[0].database')
+first_home=$(echo "$output" | jq -r '.[0].oracle_home')
+
+echo "First database: $first_db at $first_home"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Interactive Menu</h3>
+      <div style="position: relative;">
+        <pre><code>./findOracleDatabases.sh --menu</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="functions">Key Functions</h2>
+      <h3>_displayHelp()</h3>
+      <p>Display command usage, options, examples, requirements, and exit codes.</p>
+      
+      <h3>_displayMenu()</h3>
+      <p>Show interactive menu with numbered options. Provides user-friendly operation mode.</p>
+      
+      <h3>_validateEnvironment()</h3>
+      <p>Check RHEL/Oracle Linux system (/etc/redhat-release exists), verify required commands (ps, grep, awk).</p>
+      
+      <h3>_findRunningDatabases()</h3>
+      <p>Search for pmon processes, extract database names, gather details for each database, display results.</p>
+      
+      <h3>_getOracleHome()</h3>
+      <p>Discover Oracle Home directory through multiple methods (process environment, /etc/oratab, standard paths). Tries sources in order, returns first match.</p>
+      
+      <h3>_displayAsTable()</h3>
+      <p>Format and display results in human-readable columnar table format.</p>
+      
+      <h3>_displayAsJson()</h3>
+      <p>Format and display results as JSON array with metadata (hostname, timestamp).</p>
+    </section>
+
+    <section class="section">
+      <h2>Database Discovery Methods</h2>
+      <h3>1. Process Monitor Detection</h3>
+      <p>Primary method: searches for <code>ora_pmon_</code> processes which indicate running Oracle instances.</p>
+      
+      <h3>2. Oracle Home Discovery (Three-Tier Fallback)</h3>
+      <ol>
+        <li><strong>Process Environment:</strong> Read <code>/proc/[pid]/environ</code> for ORACLE_HOME variable (most accurate)</li>
+        <li><strong>/etc/oratab Lookup:</strong> Check database name entry in /etc/oratab file (portable, maintained by ASM)</li>
+        <li><strong>Standard Paths:</strong> Search common ORACLE_HOME locations (/u01/app/oracle/product/*, /opt/oracle/product/*)</li>
+      </ol>
+      <p>Returns "UNKNOWN" if Oracle Home cannot be determined.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="design">Design Decisions</h2>
+      <div class="note">
+        <h3>Process Monitor (pmon) Detection</h3>
+        <p>Identifies running databases through pmon processes rather than /etc/oratab. This detects actually-running instances, not just configured databases. More reliable for discovering active databases.</p>
+      </div>
+      <div class="note">
+        <h3>Three-Tier Oracle Home Discovery</h3>
+        <p>Multiple fallback methods ensure Oracle Home discovery works across diverse configurations. Process environment is most accurate, /etc/oratab is standard, filesystem search handles edge cases.</p>
+      </div>
+      <div class="note">
+        <h3>JSON Output with Metadata</h3>
+        <p>JSON includes hostname and timestamp in addition to database details. Enables tracking of discovery timing and differentiating results from multiple servers in batch operations.</p>
+      </div>
+      <div class="note">
+        <h3>RHEL-Only Validation</h3>
+        <p>Requires /etc/redhat-release for RHEL/Oracle Linux validation. Ensures compatibility with expected system utilities and /etc/oratab format.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="testing">Testing Checklist</h2>
+      <ul>
+        <li><input type="checkbox"> Test on RHEL/Oracle Linux system with running databases</li>
+        <li><input type="checkbox"> Test default table output format</li>
+        <li><input type="checkbox"> Test --output-format json parameter</li>
+        <li><input type="checkbox"> Test --verbose flag with table output</li>
+        <li><input type="checkbox"> Test --verbose flag with JSON output</li>
+        <li><input type="checkbox"> Test with single running database</li>
+        <li><input type="checkbox"> Test with multiple running databases</li>
+        <li><input type="checkbox"> Test --help parameter</li>
+        <li><input type="checkbox"> Test --menu parameter</li>
+        <li><input type="checkbox"> Test on non-RHEL system (error handling)</li>
+        <li><input type="checkbox"> Test when no databases are running (error exit code 2)</li>
+        <li><input type="checkbox"> Test missing ps command (error handling)</li>
+        <li><input type="checkbox"> Test missing grep command (error handling)</li>
+        <li><input type="checkbox"> Test missing awk command (error handling)</li>
+        <li><input type="checkbox"> Test Oracle Home discovery from /proc/*/environ</li>
+        <li><input type="checkbox"> Test Oracle Home discovery from /etc/oratab</li>
+        <li><input type="checkbox"> Test Oracle Home discovery from standard paths</li>
+        <li><input type="checkbox"> Test Oracle Home fallback to "UNKNOWN"</li>
+        <li><input type="checkbox"> Test JSON output validity with jq</li>
+        <li><input type="checkbox"> Test hostname included in output</li>
+        <li><input type="checkbox"> Test ISO 8601 timestamp format in JSON</li>
+        <li><input type="checkbox"> Verify column alignment in table output</li>
+        <li><input type="checkbox"> Test with GV_OUTPUT_FORMAT global variable</li>
+        <li><input type="checkbox"> Test with GV_VERBOSE global variable</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Platform Requirements</h2>
+      <ul>
+        <li>RHEL/Oracle Linux system (/etc/redhat-release required)</li>
+        <li>Requires: ps, grep, awk commands</li>
+        <li>Optional: loggy.sh for structured logging (has fallback if missing)</li>
+        <li>Oracle databases must be running (detects via pmon process)</li>
+        <li>Works with Oracle 11g and later</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="errors">Error Handling</h2>
+      <ul>
+        <li>Exit 0: Success - databases found and displayed</li>
+        <li>Exit 1: Environment validation failed (not RHEL, missing commands)</li>
+        <li>Exit 2: No running Oracle databases found</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="deployment">Deployment Notes</h2>
+      <h3>Typical Integration</h3>
+      <div style="position: relative;">
+        <pre><code>#!/bin/bash
+source ./findOracleDatabases.sh
+
+# Get list of running databases
+databases=$(findOracleDatabases --output-format json)
+
+if [[ $? -eq 0 ]]; then
+    echo "Found running databases:"
+    echo "$databases" | jq '.[] | "\(.database) at \(.oracle_home)"'
+else
+    echo "No databases found or error occurred"
+fi</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Example Output in Automation</h3>
+      <p>Script can be integrated into monitoring, inventory, or administration automation:</p>
+      <ul>
+        <li>Configuration management (Ansible, Puppet, Chef)</li>
+        <li>Monitoring/alerting systems</li>
+        <li>Automated inventory systems</li>
+        <li>Health check scripts</li>
+        <li>Backup/disaster recovery workflows</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="enhancements">Future Enhancements</h2>
+      <ol>
+        <li>Multi-platform support (Linux, Solaris, AIX, Windows)</li>
+        <li>Database instance status (open, mounted, restricted)</li>
+        <li>Memory and CPU usage per database</li>
+        <li>Archive mode status</li>
+        <li>Redo log file locations</li>
+        <li>Data file locations and sizes</li>
+        <li>Database version detection</li>
+        <li>RAC cluster detection and node identification</li>
+        <li>Container database/pluggable database detection</li>
+        <li>CSV output format</li>
+        <li>Database configuration backup</li>
+        <li>Database health checks</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2 id="related">Related Scripts</h2>
+      <ul>
+        <li><strong>loggy.sh:</strong> Provides structured logging for database discovery</li>
+        <li><strong>updateOratab.sh:</strong> Maintains /etc/oratab with discovered databases</li>
+        <li><strong>sqlToJson.sh:</strong> Can query discovered database instances</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="practices">Best Practices</h2>
+      <ul>
+        <li>Use JSON output format when integrating with other scripts (machine-readable)</li>
+        <li>Use table format for human review and troubleshooting</li>
+        <li>Enable verbose mode during development for debugging Oracle Home discovery</li>
+        <li>Run script as non-root user when possible (readable /proc access required)</li>
+        <li>Maintain /etc/oratab file for reliable Oracle Home discovery</li>
+        <li>Schedule periodic discovery to maintain inventory</li>
+        <li>Combine with updateOratab.sh to keep /etc/oratab current</li>
+        <li>Use jq for parsing JSON output in automated workflows</li>
+        <li>Log discovery results for historical tracking</li>
+        <li>Handle "UNKNOWN" Oracle Home gracefully in dependent scripts</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>findOracleDatabases.sh - Script Instructions</strong> | Generated: December 21, 2025 | Version 1.0</p>
+  </footer>
+
+  <script>
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const pre = button.closest('div').querySelector('pre');
+        const text = pre.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          button.textContent = 'Copied!';
+          setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

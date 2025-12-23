@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Relocate an Oracle RAC One Node database from its current node to another available node within the RAC cluster pool with pre-relocation checks and post-relocation validation." />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="relocateRacOneNode.sh - Script Creation Instructions" />
+  <meta property="og:description" content="Orchestrate RAC One Node database relocation with comprehensive validation and error handling." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>relocateRacOneNode.sh - Script Creation Instructions</title>
+</head>
+<body>
+  <header>
+    <main style="padding: 0 20px;">
+      <h1>relocateRacOneNode.sh - Script Creation Instructions</h1>
+    </main>
+  </header>
+  <main>
+    <nav class="toc">
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#purpose">Script Purpose</a></li>
+        <li><a href="#requirements">Core Requirements</a></li>
+        <li><a href="#variables">Global Variables</a></li>
+        <li><a href="#cli">Command-Line Interface</a></li>
+        <li><a href="#flow">Execution Flow</a></li>
+        <li><a href="#functions">Key Functions</a></li>
+        <li><a href="#commands">Key Commands</a></li>
+        <li><a href="#design">Design Decisions</a></li>
+        <li><a href="#testing">Testing Checklist</a></li>
+        <li><a href="#deployment">Deployment Notes</a></li>
+        <li><a href="#errors">Error Handling</a></li>
+        <li><a href="#enhancements">Future Enhancements</a></li>
+        <li><a href="#related">Related Scripts</a></li>
+        <li><a href="#practices">Best Practices</a></li>
+      </ul>
+    </nav>
+    <section class="section">
+      <h2 id="purpose">Script Purpose</h2>
+      <p>Orchestrate the relocation of an Oracle RAC One Node database from its current cluster node to another available node. Includes comprehensive pre-relocation validation, graceful shutdown, relocation execution, and post-relocation verification with automatic target node selection.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="requirements">Core Requirements</h2>
+      <ul>
+        <li>Validate target is RAC One Node database type (not standard RAC)</li>
+        <li>Determine current database node</li>
+        <li>Retrieve candidate servers from database configuration</li>
+        <li>Auto-select target node from candidates if not provided</li>
+        <li>Validate target node is different from current node</li>
+        <li>Validate target node is in candidate servers list</li>
+        <li>Check database is running before relocation</li>
+        <li>Confirm relocation with user (unless --force flag)</li>
+        <li>Execute srvctl relocate command with proper flags</li>
+        <li>Support graceful relocation (without force) or allow downtime (with force)</li>
+        <li>Verify database is running on target node after relocation</li>
+        <li>Retry verification with configurable timeout and interval</li>
+        <li>Support dry-run mode for validation without actual relocation</li>
+        <li>Provide verbose debug output for troubleshooting</li>
+        <li>Integrate with loggy.sh for operation tracking</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="variables">Global Variables</h2>
+      <ul>
+        <li><strong>GV_RACONE_DATABASE:</strong> Oracle database name (SID) to relocate</li>
+        <li><strong>GV_RACONE_TARGET_NODE:</strong> Target cluster node name (auto-selected if empty)</li>
+        <li><strong>GV_RACONE_ALLOW_DOWNTIME:</strong> Allow downtime during relocation (true/false)</li>
+        <li><strong>GV_RACONE_FORCE:</strong> Skip confirmation prompts (true/false)</li>
+        <li><strong>GV_RACONE_VERBOSE:</strong> Enable verbose debug output (true/false)</li>
+        <li><strong>GV_RACONE_DRY_RUN:</strong> Preview actions without making changes (true/false)</li>
+        <li><strong>GV_RACONE_CURRENT_NODE:</strong> Current database node (discovered)</li>
+        <li><strong>GV_RACONE_AVAILABLE_NODES:</strong> Array of candidate servers</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="cli">Command-Line Interface</h2>
+      <h3>Required Parameters</h3>
+      <ul>
+        <li><code>--database NAME</code> - Oracle database name (SID). Required.</li>
+      </ul>
+      <h3>Optional Parameters</h3>
+      <ul>
+        <li><code>--target-node NODE</code> - Target cluster node name (auto-selected if omitted)</li>
+        <li><code>--allow-downtime</code> - Allow service downtime during relocation (uses -f flag)</li>
+        <li><code>--force</code> - Skip confirmation prompts and proceed with relocation</li>
+        <li><code>--verbose</code> - Enable verbose debug output</li>
+        <li><code>--dry-run</code> - Show what would be done without making changes</li>
+        <li><code>--help</code> - Display help message</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Usage Examples</h2>
+      <h3>Auto-Select Target Node</h3>
+      <div style="position: relative;">
+        <pre><code>./relocateRacOneNode.sh --database MYDB</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Explicit Target Node</h3>
+      <div style="position: relative;">
+        <pre><code>./relocateRacOneNode.sh --database MYDB --target-node node2</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Allow Downtime and Force (Unattended)</h3>
+      <div style="position: relative;">
+        <pre><code>./relocateRacOneNode.sh --database MYDB --allow-downtime --force --verbose</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Dry-Run (Preview Without Changes)</h3>
+      <div style="position: relative;">
+        <pre><code>./relocateRacOneNode.sh --database MYDB --dry-run --verbose</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>With All Options</h3>
+      <div style="position: relative;">
+        <pre><code>./relocateRacOneNode.sh --database MYDB \
+  --target-node node3 \
+  --allow-downtime \
+  --force \
+  --verbose \
+  --dry-run</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="flow">Execution Flow</h2>
+      <ol>
+        <li><strong>Parse Parameters:</strong> Extract and validate command-line arguments</li>
+        <li><strong>Validate Environment:</strong> Check oracle user, Grid Infrastructure status, required commands</li>
+        <li><strong>Validate Database Type:</strong> Confirm database is RACONENODE type</li>
+        <li><strong>Get Current Node:</strong> Determine which node database is currently running on</li>
+        <li><strong>Get Candidate Servers:</strong> Retrieve list of available nodes from database configuration</li>
+        <li><strong>Auto-Select Target:</strong> If target not provided, select first alternate node</li>
+        <li><strong>Validate Target Node:</strong> Confirm target is different from current and in candidate list</li>
+        <li><strong>Check Database Status:</strong> Verify database is running (OPEN status)</li>
+        <li><strong>Confirm Relocation:</strong> Display summary and get user confirmation (unless --force)</li>
+        <li><strong>Execute Relocation:</strong> Run srvctl relocate command with appropriate flags</li>
+        <li><strong>Verify Relocation:</strong> Retry verification until database appears on target node or timeout</li>
+        <li><strong>Report Results:</strong> Display final status and completion messages</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2 id="functions">Key Functions</h2>
+      <h3>_executeSudo()</h3>
+      <p>Execute commands with sudo if needed (for Grid Infrastructure operations). Checks if already root, then executes with sudo if necessary.</p>
+      
+      <h3>_showUsage()</h3>
+      <p>Display comprehensive help with all parameters, examples, and usage notes.</p>
+      
+      <h3>_parseParameters()</h3>
+      <p>Parse command-line arguments into global variables. Validates required parameters, sets defaults.</p>
+      
+      <h3>_validateEnvironment()</h3>
+      <p>Check prerequisites: oracle user, Grid Infrastructure running, required commands exist (crsctl, srvctl, sqlplus, grep, awk, sed).</p>
+      
+      <h3>_validateDatabaseType()</h3>
+      <p>Execute srvctl config to verify database type is "RACONENODE". Returns error if wrong type.</p>
+      
+      <h3>_getCandidateServers()</h3>
+      <p>Extract candidate servers from database configuration. Parses srvctl output for server list.</p>
+      
+      <h3>_autoSelectTargetNode()</h3>
+      <p>Automatically select first alternate node from candidates (not current node). Returns error if no alternates available.</p>
+      
+      <h3>_getCurrentNode()</h3>
+      <p>Determine which node database is running on. Parses srvctl status output.</p>
+      
+      <h3>_validateTargetNode()</h3>
+      <p>Verify target node is different from current and exists in candidate servers list.</p>
+      
+      <h3>_checkDatabaseStatus()</h3>
+      <p>Verify database is running. Returns error if status shows "not running".</p>
+      
+      <h3>_confirmRelocation()</h3>
+      <p>Display relocation summary and prompt for confirmation. Skipped if --force flag used.</p>
+      
+      <h3>_relocateDatabase()</h3>
+      <p>Execute srvctl relocate command. Uses -f flag if --allow-downtime specified. Handles --dry-run mode.</p>
+      
+      <h3>_verifyRelocation()</h3>
+      <p>Retry database status check (up to 30 times with 10-second intervals) until database appears on target node. Skipped in --dry-run mode.</p>
+    </section>
+
+    <section class="section">
+      <h2>Relocation Commands</h2>
+      <h3>Graceful Relocation (Default)</h3>
+      <div style="position: relative;">
+        <pre><code>srvctl relocate database -d DBNAME -n TARGET_NODE</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <p>Performs graceful relocation without forcing shutdown. May require service downtime depending on configuration.</p>
+
+      <h3>Force Relocation (With --allow-downtime)</h3>
+      <div style="position: relative;">
+        <pre><code>srvctl relocate database -d DBNAME -n TARGET_NODE -f</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <p>Forceful relocation with immediate shutdown. Allows downtime; appropriate for planned maintenance.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="design">Design Decisions</h2>
+      <div class="note">
+        <h3>RAC One Node Only</h3>
+        <p>Script explicitly validates database is RAC One Node type. Does not support standard RAC (multiple instances) or single-instance Oracle. Clear error if wrong type prevents dangerous operations.</p>
+      </div>
+      <div class="note">
+        <h3>Auto-Selection of Target Node</h3>
+        <p>If target not specified, auto-selects first alternate node from candidates. Reduces required parameters for common use cases. Manual selection available when needed.</p>
+      </div>
+      <div class="note">
+        <h3>Multi-Step Verification</h3>
+        <p>Post-relocation verification retries up to 30 times with 10-second intervals (5 minutes total). Allows for database startup time on new node. Gracefully reports failures with diagnostic info.</p>
+      </div>
+      <div class="note">
+        <h3>Dry-Run Mode</h3>
+        <p>Demonstrates exactly what commands would be executed without making changes. Valuable for testing and documentation. Shows command-line that would be run.</p>
+      </div>
+      <div class="note">
+        <h3>Comprehensive Pre-Flight Checks</h3>
+        <p>Validates environment, database type, current/target nodes, database status, and candidate servers before attempting relocation. Prevents errors mid-operation.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="testing">Testing Checklist</h2>
+      <ul>
+        <li><input type="checkbox"> Test --help parameter</li>
+        <li><input type="checkbox"> Test missing --database parameter (error)</li>
+        <li><input type="checkbox"> Test non-existent database (error)</li>
+        <li><input type="checkbox"> Test on non-RAC One Node database (error)</li>
+        <li><input type="checkbox"> Test with explicit --target-node parameter</li>
+        <li><input type="checkbox"> Test with auto-selected target node (no --target-node)</li>
+        <li><input type="checkbox"> Test --target-node same as current (validation error)</li>
+        <li><input type="checkbox"> Test --target-node not in candidates (error)</li>
+        <li><input type="checkbox"> Test with --allow-downtime flag</li>
+        <li><input type="checkbox"> Test with --force flag (skip confirmation)</li>
+        <li><input type="checkbox"> Test with --verbose flag</li>
+        <li><input type="checkbox"> Test with --dry-run flag (no actual relocation)</li>
+        <li><input type="checkbox"> Test database status check (running vs not running)</li>
+        <li><input type="checkbox"> Test relocation with confirmation (interactive)</li>
+        <li><input type="checkbox"> Test relocation with --force (unattended)</li>
+        <li><input type="checkbox"> Test post-relocation verification (retry logic)</li>
+        <li><input type="checkbox"> Test verification timeout (database doesn't start on target)</li>
+        <li><input type="checkbox"> Test oracle user requirement</li>
+        <li><input type="checkbox"> Test Grid Infrastructure requirement</li>
+        <li><input type="checkbox"> Test required command availability (crsctl, srvctl, sqlplus)</li>
+        <li><input type="checkbox"> Test candidate servers retrieval</li>
+        <li><input type="checkbox"> Test current node detection</li>
+        <li><input type="checkbox"> Test auto-selection when multiple candidates available</li>
+        <li><input type="checkbox"> Test with single candidate node (auto-select should fail)</li>
+        <li><input type="checkbox"> Test relocation summary display</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="deployment">Deployment Notes</h2>
+      <h3>Prerequisites</h3>
+      <ul>
+        <li>Oracle RAC One Node installation with Grid Infrastructure</li>
+        <li>Execute as: oracle user (database operations)</li>
+        <li>Requires: crsctl, srvctl, sqlplus, grep, awk, sed commands</li>
+        <li>May require sudo for Grid Infrastructure operations (crsctl check cluster)</li>
+        <li>ORACLE_HOME and ORACLE_BASE environment variables configured</li>
+        <li>loggy.sh in same directory (optional, has fallback)</li>
+        <li>Network connectivity between cluster nodes</li>
+      </ul>
+      <h3>Pre-Relocation Checklist</h3>
+      <ul>
+        <li>Verify database has valid backups</li>
+        <li>Confirm downtime window if relocation requires one</li>
+        <li>Notify application teams of potential service interruption</li>
+        <li>Test relocation on non-production first</li>
+        <li>Use --dry-run to validate commands that will be executed</li>
+        <li>Have rollback plan if relocation fails</li>
+      </ul>
+      <h3>Post-Relocation Verification</h3>
+      <ul>
+        <li>Confirm database is OPEN on target node</li>
+        <li>Verify application connectivity</li>
+        <li>Check alert logs for errors</li>
+        <li>Validate performance on new node</li>
+        <li>Update documentation with new node assignment</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="errors">Error Handling</h2>
+      <ul>
+        <li>Exit 0: Success - relocation completed and verified</li>
+        <li>Exit 1: Parameter validation failure or user cancellation</li>
+        <li>Exit 1: Environment validation failure (not oracle user, Grid not running, etc.)</li>
+        <li>Exit 1: Database type validation failure (not RAC One Node)</li>
+        <li>Exit 1: Target node validation failure (same as current, not in candidates, etc.)</li>
+        <li>Exit 1: Database status failure (not running)</li>
+        <li>Exit 1: Relocation execution failure (srvctl error)</li>
+        <li>Exit 1: Verification failure (database doesn't start on target after timeout)</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="enhancements">Future Enhancements</h2>
+      <ol>
+        <li>Support standard RAC (multiple instances)</li>
+        <li>Parallel relocation of multiple databases</li>
+        <li>Scheduled relocation (future date/time)</li>
+        <li>Pre-flight health checks (resource availability)</li>
+        <li>Storage migration during relocation</li>
+        <li>Automatic rollback on verification failure</li>
+        <li>Email notifications on completion/failure</li>
+        <li>Relocation history tracking</li>
+        <li>Performance baseline comparison (before/after)</li>
+        <li>Integration with Oracle Enterprise Manager</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2 id="related">Related Scripts</h2>
+      <ul>
+        <li><strong>loggy.sh:</strong> Provides structured logging for relocation operations</li>
+        <li><strong>findOracleDatabases.sh:</strong> Discover RAC One Node databases before relocation</li>
+        <li><strong>updateOratab.sh:</strong> Update /etc/oratab after relocation</li>
+        <li><strong>sqlToJson.sh:</strong> Query database status during relocation</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="practices">Best Practices</h2>
+      <ul>
+        <li>Use --dry-run before actual relocation to validate commands</li>
+        <li>Enable --verbose mode for production relocations (aids troubleshooting if issues arise)</li>
+        <li>Use --allow-downtime only for planned maintenance windows</li>
+        <li>Schedule relocations during agreed maintenance windows</li>
+        <li>Maintain backups before relocation attempts</li>
+        <li>Test relocation procedures on non-production RAC clusters</li>
+        <li>Document relocation decisions and results for audit trails</li>
+        <li>Use --force only in unattended automation (with proper validation)</li>
+        <li>Verify application connectivity after relocation</li>
+        <li>Monitor alert logs on new node for startup issues</li>
+        <li>Plan for rollback procedures</li>
+        <li>Keep cluster balanced (distribute databases across nodes)</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>relocateRacOneNode.sh - Script Instructions</strong> | Generated: December 21, 2025 | Version 1.0</p>
+  </footer>
+
+  <script>
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const pre = button.closest('div').querySelector('pre');
+        const text = pre.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          button.textContent = 'Copied!';
+          setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

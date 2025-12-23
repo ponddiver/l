@@ -1,0 +1,388 @@
+################################################################################
+# Script Creation Instructions Log
+# Script: findOracleDatabases.sh
+# Created: 2025-12-21
+# Version: 1.0 Stable
+################################################################################
+
+## INITIAL REQUEST
+Create a bash script that identifies all running Oracle databases on a RHEL/Oracle 
+Linux server and displays their Oracle Home directories, user ownership, and 
+process IDs.
+
+## SCRIPT PURPOSE
+Discover and inventory all running Oracle database instances on a RHEL/Oracle Linux 
+system. Provides visibility into which databases are currently executing, where they 
+are installed, which user owns them, and their process identifiers. Useful for 
+system administration, capacity planning, and database environment discovery.
+
+## CORE REQUIREMENTS (Initial)
+- Identify all running Oracle database instances on RHEL/Oracle Linux
+- Display Oracle Home directory for each instance
+- Show process user ownership
+- Show process IDs (PIDs)
+- Support multiple output formats (table, JSON)
+- Provide verbose debug output option
+- Execute on RHEL/Oracle Linux systems only
+
+## DEVELOPMENT HISTORY
+
+### Initial Creation - Version 1.0
+The script was created with the following features:
+- RHEL/Oracle Linux platform validation (/etc/redhat-release check)
+- Process monitoring via pmon process discovery
+- Multiple Oracle Home discovery methods:
+  1. Extract from /proc/[pid]/environ (process environment)
+  2. Lookup in /etc/oratab file
+  3. Scan common Oracle Home locations
+- Support for table and JSON output formats
+- Optional verbose debug logging
+- Integration with loggy.sh logging utility
+- Help and interactive menu support
+
+## GLOBAL VARIABLE SPECIFICATIONS
+All variables follow sh.instruction.md naming conventions with GV_ prefix to
+minimize conflicts with other scripts:
+
+- GV_OUTPUT_FORMAT - Output format setting (table or json)
+  Default: "table"
+  Set by: --output-format parameter or global variable
+
+- GV_VERBOSE - Enable verbose debug output
+  Default: false
+  Set by: --verbose flag or global variable
+
+## EXECUTION MODEL
+- Primary execution: Any user (no privilege escalation needed)
+- Process inspection: Uses ps and /proc filesystem (readable by most users)
+- Platform requirement: Must run on RHEL/Oracle Linux systems
+- Dependencies: ps, grep, awk commands (always available on Linux)
+- Optional: loggy.sh for structured logging (has fallback)
+
+## KEY FUNCTIONS
+
+_validateEnvironment()
+- Checks system is RHEL/Oracle Linux via /etc/redhat-release
+- Verifies required commands available: ps, grep, awk
+- Returns: 0 if valid, 1 if validation fails
+- Purpose: Prevent execution on non-RHEL systems
+
+_findRunningDatabases()
+- Main function that orchestrates database discovery
+- Executes ps command to find all ora_pmon_* processes
+- For each pmon process:
+  * Extracts database SID from process name
+  * Gets process ID, user ownership via ps output
+  * Calls _getOracleHome to locate installation directory
+  * Stores results in l_databases array
+- Logs findings via loggy utility
+- Calls appropriate display function based on output format
+- Returns: 0 if successful, 2 if no databases found
+
+_getOracleHome()
+- Three-tier approach to locating Oracle Home for a database
+- Tier 1: Check /proc/[pid]/environ for ORACLE_HOME environment variable
+- Tier 2: Look up database SID in /etc/oratab file
+- Tier 3: Scan common installation paths for sqlplus executable
+- Returns: Oracle Home path or "UNKNOWN" if not found
+- Purpose: Maximize probability of finding installation directory
+
+_displayAsTable()
+- Formats discovered databases as aligned ASCII table
+- Columns: DATABASE, ORACLE_HOME, USER, PID
+- Header shows hostname and timestamp
+- Supports multiple database entries
+- Purpose: Human-readable output for console viewing
+
+_displayAsJson()
+- Formats discovered databases as JSON array
+- One JSON object per discovered database
+- Fields: database, oracle_home, oracle_user, pid, hostname, timestamp
+- Timestamp in UTC ISO 8601 format
+- Purpose: Machine-readable output for automation/integration
+
+_displayHelp()
+- Shows usage information and command-line options
+- Documents all available parameters and flags
+- Provides usage examples
+- Lists system requirements
+- Documents exit codes
+
+_displayMenu()
+- Interactive menu for user guidance
+- Shows available options with brief descriptions
+- Notes that automation requires command-line flags
+- Purpose: Help first-time users understand capabilities
+
+## COMMAND-LINE INTERFACE
+
+Flags/Parameters:
+- --help             Display help message with full documentation
+- --menu             Show interactive menu (useful for first-time users)
+- --output-format    Set output format: 'table' (default) or 'json'
+- --verbose          Enable verbose debug output for troubleshooting
+
+Execution Modes:
+1. Default mode (table output):
+   ./findOracleDatabases.sh
+
+2. JSON output for automation:
+   ./findOracleDatabases.sh --output-format json
+
+3. Verbose output for troubleshooting:
+   ./findOracleDatabases.sh --verbose
+
+4. Verbose JSON output:
+   ./findOracleDatabases.sh --verbose --output-format json
+
+5. Interactive menu:
+   ./findOracleDatabases.sh --menu
+
+6. Help:
+   ./findOracleDatabases.sh --help
+
+## DESIGN DECISIONS & RATIONALE
+
+1. pmon Process Detection
+   Rationale: Oracle Process Monitor (pmon) processes are unique to running 
+   database instances. The process name format "ora_pmon_SIDNAME" uniquely 
+   identifies each running instance without requiring direct database access.
+
+2. Multiple Oracle Home Discovery Methods
+   Rationale: No single method guarantees finding ORACLE_HOME on all systems.
+   Tier 1 (environ) is fastest. Tier 2 (oratab) is most reliable. Tier 3 
+   (filesystem scan) catches manually installed or non-standard locations.
+
+3. Optional loggy.sh Integration
+   Rationale: Logging is valuable for troubleshooting, but forcing dependency 
+   on external script limits portability. Fallback to simple echo ensures 
+   script always works.
+
+4. RHEL/Oracle Linux Only
+   Rationale: Script relies on /etc/redhat-release for platform detection and 
+   /proc filesystem format specific to Linux. Not portable to other Unix variants 
+   or Windows.
+
+5. No Privilege Escalation
+   Rationale: Process listing and /proc access are available to all users on 
+   Linux systems. Requiring sudo would unnecessarily restrict usability.
+
+6. JSON Output Support
+   Rationale: Enables integration with monitoring/automation tools and scripts 
+   that process JSON. Table format provides human-friendly default.
+
+7. Verbose Mode
+   Rationale: Helps troubleshoot discovery issues by logging each database 
+   found and showing Oracle Home detection process.
+
+## COMPLIANCE WITH CODING STANDARDS
+
+✓ Follows sh.instruction.md guidelines:
+  - Uses GV_ prefix for global variables
+  - Maintains function organization with clear subfunctions
+  - Includes comprehensive header documentation
+  - Uses set -euo pipefail for safety
+  - Implements error handling with exit codes
+  - Provides help and menu functionality
+
+✓ Execution Context:
+  - Runs as any user (no privilege requirement)
+  - Uses only commands available on all Linux systems
+  - No external dependencies beyond optional loggy.sh
+  - Clear platform requirements documented
+
+✓ Global Variable Specificity:
+  - GV_OUTPUT_FORMAT: Specific to this script's output control
+  - GV_VERBOSE: Standard naming for debug flag
+  - Minimal conflict risk with other scripts
+
+✓ Error Handling:
+  - Exit code 0: Success
+  - Exit code 1: Environment validation failed
+  - Exit code 2: No running databases found
+  - All errors logged via loggy utility
+
+✓ Documentation:
+  - Comprehensive header with description and examples
+  - Function documentation for each subfunction
+  - Clear parameter descriptions in help text
+  - Usage examples for common scenarios
+
+## TESTING CHECKLIST
+
+- [ ] Test on RHEL system with running Oracle databases
+- [ ] Test --help parameter displays complete documentation
+- [ ] Test --menu parameter shows interactive menu
+- [ ] Test default execution (no parameters) shows table format
+- [ ] Test --output-format json produces valid JSON output
+- [ ] Test --output-format table produces aligned columns
+- [ ] Test --verbose flag enables debug output
+- [ ] Test on system with no running databases (returns exit code 2)
+- [ ] Test on non-RHEL system (returns exit code 1 for platform check)
+- [ ] Test with /etc/oratab file missing (falls back to directory scan)
+- [ ] Test with /proc filesystem unavailable (handles gracefully)
+- [ ] Test JSON output can be piped to jq utility
+- [ ] Test with multiple running databases shows all instances
+- [ ] Test ORACLE_HOME discovery from environment variable
+- [ ] Test ORACLE_HOME discovery from /etc/oratab
+- [ ] Test ORACLE_HOME discovery from filesystem scan
+
+## DEPLOYMENT NOTES
+
+### Prerequisites
+- RHEL 6.x, 7.x, 8.x, or Oracle Linux equivalent
+- bash shell (version 4.0+)
+- Standard utilities: ps, grep, awk (included in all Linux distributions)
+- Optional: loggy.sh in same directory (script works without it)
+
+### Installation
+1. Copy findOracleDatabases.sh to desired location (e.g., /usr/local/bin or ~/bash_library/)
+2. Make executable: chmod +x findOracleDatabases.sh
+3. Optional: Copy loggy.sh to same directory for enhanced logging
+
+### Usage in Automation
+For use in cron jobs or monitoring systems, capture JSON output:
+```bash
+DATABASE_LIST=$(./findOracleDatabases.sh --output-format json)
+echo "$DATABASE_LIST" | jq '.[] | select(.oracle_user=="oracle")'
+```
+
+### Troubleshooting
+- No databases found: Verify Oracle instances are running with `ps aux | grep pmon`
+- Platform error: Run on RHEL/Oracle Linux system
+- Permission denied: Ensure script is executable and readable
+- loggy.sh not found: Script has fallback; place loggy.sh in same directory for enhanced logging
+
+### Performance Considerations
+- Script runs quickly (typically <1 second) as it only scans process list
+- No database connections are made
+- Safe to run repeatedly or in background
+
+## VERSION HISTORY
+
+### v1.0 (2025-12-21) - Initial Release
+- Complete implementation of database discovery functionality
+- Table and JSON output formats
+- Verbose debug logging option
+- Help and interactive menu support
+- Multi-method Oracle Home discovery
+- RHEL/Oracle Linux platform validation
+- loggy.sh integration with graceful fallback
+
+## FUTURE ENHANCEMENT OPPORTUNITIES
+
+1. **CDB/PDB Detection**: Enhanced parsing to distinguish between Container Databases (CDB) and Pluggable Databases (PDB)
+
+2. **Additional Metadata**: Collect and display:
+   - Database version information (from v$version)
+   - Instance status (open, mounted, restricted)
+   - Memory usage per instance
+   - Archive mode status
+
+3. **Filtering Options**:
+   - Filter by specific database name
+   - Filter by specific user
+   - Show only running vs. stopped instances
+
+4. **Configuration File Support**:
+   - Read from configuration file for predefined filters
+   - Support custom output templates
+
+5. **Performance Metrics**:
+   - CPU usage per database instance
+   - Memory consumption
+   - Disk I/O statistics
+
+6. **Centralized Inventory**:
+   - Send results to central monitoring system
+   - Create database inventory report
+   - Track changes over time
+
+7. **Remote Discovery**:
+   - Discover databases on remote systems via SSH
+   - Consolidated view of multiple servers
+
+8. **Database Connection**:
+   - Optional connection to discovered databases for detailed queries
+   - Collect additional metadata directly from database
+
+9. **Export Formats**:
+   - CSV export for spreadsheet compatibility
+   - XML export for enterprise tools
+   - YAML format for configuration management
+
+10. **Integration Features**:
+    - Webhook notifications on database discovery
+    - Slack/email alerts for new databases
+    - Prometheus metrics export
+
+## NOTES FOR MAINTAINERS
+
+### Code Organization
+The script follows a clear pattern:
+1. Sourcing dependencies (loggy.sh, constants.sh)
+2. Global variable initialization
+3. Main function (findOracleDatabases) dispatching to helpers
+4. Subfunction definitions (_validateEnvironment, _findRunningDatabases, etc.)
+5. Function exports and conditional execution
+
+### Key Implementation Details
+- Uses bash `[[ ]]` for pattern matching (pmon detection)
+- Leverages `IFS='|'` for structured data passing between functions
+- Implements graceful fallback for loggy.sh dependency
+- Uses grep -v grep idiom to filter own process from results
+
+### Testing Guidance
+For comprehensive testing, ensure test system has:
+- At least one running Oracle database instance
+- /etc/oratab file properly configured
+- ORACLE_HOME environment variable set in oracle user session
+- Readable /proc filesystem
+
+### Common Issues & Solutions
+**Issue**: Script reports "No running Oracle databases found"
+**Solution**: Verify Oracle instances running with: `ps aux | grep ora_pmon`
+
+**Issue**: ORACLE_HOME shows "UNKNOWN"
+**Solution**: Check /etc/oratab, or verify ORACLE_HOME env var in oracle process
+
+**Issue**: JSON output is malformed
+**Solution**: Check for special characters in paths; use printf for safer formatting
+
+### Performance Optimization
+Current implementation is optimized for speed:
+- Single pass through process list
+- No database connections required
+- Minimal system resource usage
+- Suitable for frequent execution
+
+If performance becomes an issue:
+- Cache results with timestamp
+- Skip Oracle Home detection for known instances
+- Parallelize directory scans if many common paths
+
+## RELATED SCRIPTS
+
+Scripts that complement findOracleDatabases.sh:
+- updateOratab.sh: Maintains /etc/oratab file automatically
+- relocateRacOneNode.sh: Relocates RAC One Node databases
+- sqlToJson.sh: Executes SQL queries for detailed database info
+- loggy.sh: Provides structured logging across bash library
+
+## DEPENDENCIES
+
+### Required
+- bash shell (4.0+)
+- ps command
+- grep command
+- awk command
+
+### Optional
+- loggy.sh (graceful fallback if missing)
+- jq (useful for processing JSON output, not required)
+
+### System
+- /etc/redhat-release (platform identification)
+- /proc filesystem (process environment variables)
+- /etc/oratab file (if present, used for Oracle Home lookup)
+

@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Execute Oracle SQL queries and convert results to JSON format with flexible database connection options." />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="sqlToJson.sh - Script Creation Instructions" />
+  <meta property="og:description" content="Convert Oracle SQL query results to JSON format with multiple connection methods." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>sqlToJson.sh - Script Creation Instructions</title>
+</head>
+<body>
+  <header>
+    <main style="padding: 0 20px;">
+      <h1>sqlToJson.sh - Script Creation Instructions</h1>
+    </main>
+  </header>
+  <main>
+    <nav class="toc">
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#purpose">Script Purpose</a></li>
+        <li><a href="#requirements">Core Requirements</a></li>
+        <li><a href="#variables">Global Variables</a></li>
+        <li><a href="#cli">Command-Line Interface</a></li>
+        <li><a href="#functions">Key Functions</a></li>
+        <li><a href="#examples">Usage Examples</a></li>
+        <li><a href="#output">JSON Output Format</a></li>
+        <li><a href="#precedence">Parameter Precedence</a></li>
+        <li><a href="#design">Design Decisions</a></li>
+        <li><a href="#testing">Testing Checklist</a></li>
+        <li><a href="#deployment">Deployment Notes</a></li>
+        <li><a href="#errors">Error Handling</a></li>
+        <li><a href="#enhancements">Future Enhancements</a></li>
+        <li><a href="#related">Related Scripts</a></li>
+        <li><a href="#practices">Best Practices</a></li>
+      </ul>
+    </nav>
+    <section class="section">
+      <h2 id="purpose">Script Purpose</h2>
+      <p>Execute Oracle SQL queries and convert results to JSON format with flexible database connection options (direct connection string, component-based, or global variables) and optional file output.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="requirements">Core Requirements</h2>
+      <ul>
+        <li>Execute arbitrary Oracle SQL queries via sqlplus</li>
+        <li>Support three connection approaches (direct string, component-based, global variables)</li>
+        <li>Convert query results to JSON array format with column names as keys</li>
+        <li>Handle NULL values, numeric types, and string escaping properly</li>
+        <li>Auto-detect sqlplus executable location (PATH or ORACLE_HOME)</li>
+        <li>Support sys/sysdba authentication mode</li>
+        <li>Parse command-line parameters with defaults from global variables</li>
+        <li>Provide interactive menu mode for parameter entry</li>
+        <li>Return JSON in global variable GV_SQL_RESULT_JSON</li>
+        <li>Handle error conditions with appropriate exit codes</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="variables">Global Variables</h2>
+      <ul>
+        <li><strong>GV_DB_USERNAME:</strong> Oracle username (default: sys)</li>
+        <li><strong>GV_DB_PASSWORD:</strong> Oracle password (default: empty)</li>
+        <li><strong>GV_DB_HOST:</strong> Oracle hostname (default: localhost)</li>
+        <li><strong>GV_DB_PORT:</strong> Oracle port (default: 1521)</li>
+        <li><strong>GV_DB_SID:</strong> Oracle SID (default: empty)</li>
+        <li><strong>GV_DB_SERVICE_NAME:</strong> Oracle Service Name (preferred over SID)</li>
+        <li><strong>GV_DB_CONNECTION_STRING:</strong> Pre-built connection string (overrides components)</li>
+        <li><strong>GV_SQL_RESULT_JSON:</strong> Output variable containing JSON result array</li>
+        <li><strong>GV_SQLPLUS_PATH:</strong> Path to sqlplus executable (auto-detected if empty)</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="cli">Command-Line Interface</h2>
+      <h3>Required Parameters</h3>
+      <ul>
+        <li><code>--sql QUERY</code> - Oracle SQL query to execute</li>
+      </ul>
+      <h3>Connection Options (choose one approach)</h3>
+      <ul>
+        <li><code>--connection-string CS</code> - Pre-built connection string</li>
+        <li><code>--username USER</code> - Oracle username (default: GV_DB_USERNAME)</li>
+        <li><code>--password PASS</code> - Oracle password (required for component approach)</li>
+        <li><code>--hostname HOST</code> - Oracle host (default: GV_DB_HOST)</li>
+        <li><code>--port PORT</code> - Oracle port (default: GV_DB_PORT)</li>
+        <li><code>--sid SID</code> - Oracle SID (default: GV_DB_SID)</li>
+        <li><code>--service-name NAME</code> - Oracle Service Name (preferred over SID)</li>
+      </ul>
+      <h3>Other Options</h3>
+      <ul>
+        <li><code>--help</code> - Display help message</li>
+        <li><code>--menu</code> - Show interactive menu</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="functions">Key Functions</h2>
+      <h3>_cleanupSqlQuery()</h3>
+      <p>Clean up SQL query by removing all semicolons and adding single one at end. Handles whitespace trimming.</p>
+      
+      <h3>_findSqlplusPath()</h3>
+      <p>Locate sqlplus executable in PATH or ORACLE_HOME/bin. Sets GV_SQLPLUS_PATH variable.</p>
+      
+      <h3>_buildConnectionString()</h3>
+      <p>Build Oracle connection string from components (username, password, hostname, port, SID/service name). Converts sys user to "sys as sysdba".</p>
+      
+      <h3>_executeOracleQuery()</h3>
+      <p>Execute Oracle query using sqlplus and return pipe-delimited result with column headers as first row.</p>
+      
+      <h3>_convertResultToJson()</h3>
+      <p>Convert pipe-delimited results to JSON array. Handles NULL values, numeric types, and proper string escaping.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="examples">Usage Examples</h2>
+      <h3>Approach 1: Direct Connection String</h3>
+      <div style="position: relative;">
+        <pre><code>sqlToJson --sql "SELECT * FROM v\$version" \
+          --connection-string "sys/password@localhost:1521/ORCL"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Approach 2: Component-Based Connection</h3>
+      <div style="position: relative;">
+        <pre><code>sqlToJson --sql "SELECT * FROM employees" \
+          --username scott --password tiger --sid ORCL</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Approach 3: Using Global Variables</h3>
+      <div style="position: relative;">
+        <pre><code>GV_DB_USERNAME="scott"
+GV_DB_PASSWORD="tiger"
+GV_DB_SERVICE_NAME="ORCL"
+sqlToJson --sql "SELECT * FROM dept"
+echo "$GV_SQL_RESULT_JSON" | jq</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Interactive Menu</h3>
+      <div style="position: relative;">
+        <pre><code>sqlToJson --menu</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="output">JSON Output Format</h2>
+      <p>Results returned as JSON array in global variable GV_SQL_RESULT_JSON:</p>
+      <div style="position: relative;">
+        <pre><code>[
+  {"ID": 1, "NAME": "John", "EMAIL": "john@example.com"},
+  {"ID": 2, "NAME": "Jane", "EMAIL": "jane@example.com"}
+]</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <ul>
+        <li>Array of objects (one per result row)</li>
+        <li>Column names become object keys (typically UPPERCASE from Oracle)</li>
+        <li>NULL values become JSON null</li>
+        <li>Numbers remain numeric (no quotes)</li>
+        <li>Strings properly quoted and escaped</li>
+        <li>Dates returned as strings in Oracle format</li>
+        <li>Empty result set returns []</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="precedence">Parameter Precedence</h2>
+      <ol>
+        <li>Runtime named parameters (--hostname 192.168.1.100)</li>
+        <li>Global variables (GV_DB_HOST="192.168.1.100")</li>
+        <li>Constants file values (constants.sh)</li>
+        <li>Explicit defaults (localhost, 1521, sys)</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2 id="design">Design Decisions</h2>
+      <div class="note">
+        <h3>Three Connection Approaches</h3>
+        <p>Supports pre-built connection string, component-based connection (hostname/port/SID), and service name. Flexibility for different deployment scenarios and integration patterns.</p>
+      </div>
+      <div class="note">
+        <h3>sys/sysdba Automatic Conversion</h3>
+        <p>When username is "sys", automatically converts to "sys as sysdba" for proper privilege escalation without exposing complexity to caller.</p>
+      </div>
+      <div class="note">
+        <h3>Automatic sqlplus Discovery</h3>
+        <p>Searches PATH first, then ORACLE_HOME/bin, avoiding hardcoded paths. Gracefully fails with clear error message if not found.</p>
+      </div>
+      <div class="note">
+        <h3>Column-Name-Based Key Mapping</h3>
+        <p>Uses first row from sqlplus output as column headers, avoiding fragile parsing of sqlplus metadata. Robust with various Oracle configurations.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="testing">Testing Checklist</h2>
+      <ul>
+        <li><input type="checkbox"> Test --help parameter</li>
+        <li><input type="checkbox"> Test --menu interactive mode</li>
+        <li><input type="checkbox"> Test --sql parameter required validation</li>
+        <li><input type="checkbox"> Test query with no results (empty array)</li>
+        <li><input type="checkbox"> Test query with NULL values</li>
+        <li><input type="checkbox"> Test numeric vs string value types</li>
+        <li><input type="checkbox"> Test direct connection string approach</li>
+        <li><input type="checkbox"> Test component-based connection approach</li>
+        <li><input type="checkbox"> Test global variable defaults</li>
+        <li><input type="checkbox"> Test sys/sysdba conversion</li>
+        <li><input type="checkbox"> Test service name (preferred over SID)</li>
+        <li><input type="checkbox"> Test SID connection fallback</li>
+        <li><input type="checkbox"> Test sqlplus path auto-detection</li>
+        <li><input type="checkbox"> Test password not logged in output</li>
+        <li><input type="checkbox"> Test SQL query semicolon cleanup</li>
+        <li><input type="checkbox"> Test JSON string escaping (quotes, newlines)</li>
+        <li><input type="checkbox"> Test integration with jsonValue.sh</li>
+        <li><input type="checkbox"> Test large result sets</li>
+        <li><input type="checkbox"> Test remote Oracle databases</li>
+        <li><input type="checkbox"> Test error handling (connection failures)</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="deployment">Deployment Notes</h2>
+      <h3>Prerequisites</h3>
+      <ul>
+        <li>Oracle Client Tools installed (sqlplus command)</li>
+        <li>ORACLE_HOME configured (for auto-detection)</li>
+        <li>loggy.sh in same directory</li>
+        <li>Bash 4.0+</li>
+      </ul>
+      <h3>Environment Setup</h3>
+      <div style="position: relative;">
+        <pre><code>export ORACLE_HOME=/u01/app/oracle/product/19c
+export NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+export PATH=$ORACLE_HOME/bin:$PATH</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <h3>Integration Pattern</h3>
+      <p>Works seamlessly with jsonValue.sh for extracting specific fields from JSON results:</p>
+      <div style="position: relative;">
+        <pre><code>sqlToJson --sql "SELECT * FROM employees" --password pass123
+source jsonValue.sh
+jsonValue "$GV_SQL_RESULT_JSON" ".[0].NAME"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="errors">Error Handling</h2>
+      <ul>
+        <li>Exit 0: Success</li>
+        <li>Exit 1: Parameter validation failed (missing --sql)</li>
+        <li>Exit 2: sqlplus not found</li>
+        <li>Exit 3: Query execution error</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="enhancements">Future Enhancements</h2>
+      <ol>
+        <li>Export results to file (--output-file param)</li>
+        <li>Query timeout support (--timeout seconds)</li>
+        <li>Multiple query support (--sql-file filename)</li>
+        <li>Environment variable substitution in SQL</li>
+        <li>Connection pooling for repeated queries</li>
+        <li>Caching of repeated query results</li>
+        <li>SQL formatting/pretty-printing</li>
+        <li>Performance metrics (query execution time)</li>
+        <li>Batch query processing with aggregate results</li>
+        <li>CSV/XML output format options</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2 id="related">Related Scripts</h2>
+      <ul>
+        <li><strong>jsonValue.sh:</strong> Extract values from JSON output</li>
+        <li><strong>findOracleDatabases.sh:</strong> Discover Oracle databases via process monitoring</li>
+        <li><strong>updateOratab.sh:</strong> Maintain /etc/oratab file with running instances</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="practices">Best Practices</h2>
+      <ul>
+        <li>Always escape passwords in command-line; prefer global variables</li>
+        <li>Use --menu mode in interactive scripts for better user experience</li>
+        <li>Validate JSON output with jq before processing in pipelines</li>
+        <li>Set NLS_LANG for proper character encoding with non-ASCII data</li>
+        <li>Use service names instead of SIDs for better portability</li>
+        <li>Cache connection details in global variables for repeated queries</li>
+        <li>Use --dry-run with echo before executing modifications</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>sqlToJson.sh - Script Instructions</strong> | Generated: December 21, 2025 | Version 1.0</p>
+  </footer>
+
+  <script>
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const pre = button.closest('div').querySelector('pre');
+        const text = pre.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          button.textContent = 'Copied!';
+          setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

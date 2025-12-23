@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Remote SSH command execution utility with support for both password and key-based authentication, configurable timeout, and flexible parameter precedence." />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="ssh.sh (runSshCommand) - Script Creation Instructions" />
+  <meta property="og:description" content="Execute remote SSH commands with flexible authentication and parameter precedence." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>ssh.sh (runSshCommand) - Script Creation Instructions</title>
+<body>
+  <header>
+    <main style="padding: 0 20px;">
+      <h1>ssh.sh (runSshCommand) - Script Creation Instructions</h1>
+    </main>
+  </header>
+  <main>
+    <nav class="toc">
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#purpose">Script Purpose</a></li>
+        <li><a href="#requirements">Core Requirements</a></li>
+        <li><a href="#variables">Global Variables</a></li>
+        <li><a href="#cli">Command-Line Interface</a></li>
+        <li><a href="#precedence">Parameter Precedence</a></li>
+        <li><a href="#functions">Key Functions</a></li>
+        <li><a href="#examples">Usage Examples</a></li>
+        <li><a href="#options">SSH Options Used</a></li>
+        <li><a href="#design">Design Decisions</a></li>
+        <li><a href="#errors">Error Codes</a></li>
+        <li><a href="#testing">Testing Checklist</a></li>
+        <li><a href="#deployment">Deployment Notes</a></li>
+        <li><a href="#security">Security Considerations</a></li>
+        <li><a href="#enhancements">Future Enhancements</a></li>
+        <li><a href="#related">Related Scripts</a></li>
+        <li><a href="#practices">Best Practices</a></li>
+      </ul>
+    </nav>
+    <section class="section">
+      <h2 id="purpose">Script Purpose</h2>
+      <p>Remote SSH command execution utility with support for both password and key-based authentication, configurable timeout, flexible parameter precedence, and comprehensive error handling with logging.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="requirements">Core Requirements</h2>
+      <ul>
+        <li>Execute arbitrary commands on remote servers via SSH</li>
+        <li>Support key-based authentication (SSH private keys)</li>
+        <li>Support password-based authentication (via sshpass)</li>
+        <li>Configurable SSH port (default: 22)</li>
+        <li>Configurable command timeout (default: 300 seconds)</li>
+        <li>Implement parameter precedence (runtime → global variables → constants → defaults)</li>
+        <li>Capture and return command output to stdout</li>
+        <li>Handle authentication failures with appropriate error codes</li>
+        <li>Handle connection timeouts gracefully</li>
+        <li>Suppress SSH host key prompts for automation</li>
+        <li>Parse command-line parameters with validation</li>
+        <li>Provide interactive menu mode for parameter entry</li>
+        <li>Integrate with loggy.sh for operation tracking</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="variables">Global Variables</h2>
+      <ul>
+        <li><strong>GV_SSH_PORT:</strong> Default SSH port (default: 22)</li>
+        <li><strong>GV_SSH_TIMEOUT:</strong> Command execution timeout in seconds (default: 300)</li>
+        <li><strong>GV_SSH_KEYFILE:</strong> Path to SSH private key file (default: empty, uses ~/.ssh/id_rsa)</li>
+        <li><strong>GV_SSH_PASSWORD:</strong> Password for authentication (default: empty)</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="cli">Command-Line Interface</h2>
+      <h3>Required Parameters</h3>
+      <ul>
+        <li><code>--username USER</code> - Remote server username</li>
+        <li><code>--hostname HOST</code> - Remote server hostname or IP address</li>
+        <li><code>--command CMD</code> - Command to execute on remote server</li>
+      </ul>
+      <h3>Authentication (One Required)</h3>
+      <ul>
+        <li><code>--password PASS</code> - Password for authentication (requires sshpass installed)</li>
+        <li><code>--keyfile FILE</code> - Path to SSH private key file (default: ~/.ssh/id_rsa)</li>
+      </ul>
+      <h3>Optional Parameters</h3>
+      <ul>
+        <li><code>--port PORT</code> - SSH port (default: GV_SSH_PORT or 22)</li>
+        <li><code>--timeout SECS</code> - Command timeout in seconds (default: GV_SSH_TIMEOUT or 300)</li>
+        <li><code>--help</code> - Display help message</li>
+        <li><code>--menu</code> - Show interactive menu</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="precedence">Parameter Precedence</h2>
+      <p>Parameters are evaluated in this order (highest to lowest priority):</p>
+      <ol>
+        <li>Runtime named parameters (--port 2222)</li>
+        <li>Global variables (GV_SSH_PORT="2222")</li>
+        <li>Constants file values (constants.sh if it exists)</li>
+        <li>Explicit defaults (22 for port, 300 for timeout)</li>
+      </ol>
+      <p>This allows flexible configuration: defaults in constants, override with globals, override with CLI parameters.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="functions">Key Functions</h2>
+      <h3>_showHelp()</h3>
+      <p>Display comprehensive help with all parameters, examples, authentication options, and precedence documentation.</p>
+      
+      <h3>_showMenu()</h3>
+      <p>Display interactive parameter entry menu. Prompts for username, hostname, command, authentication method, and optional parameters. Recursively calls runSshCommand with collected parameters.</p>
+      
+      <h3>_assertRequiredParameters()</h3>
+      <p>Validate that username, hostname, and command are provided. Returns 0 if valid, 1 if any missing.</p>
+      
+      <h3>_assertAuthenticationProvided()</h3>
+      <p>Validate that either password or keyfile is provided. Returns 0 if valid, 1 if both missing.</p>
+      
+      <h3>_validateKeyfile()</h3>
+      <p>Check that keyfile exists and is readable. Expands ~ to $HOME. Returns 0 if valid, 1 if invalid.</p>
+      
+      <h3>_executeSshCommand()</h3>
+      <p>Execute remote SSH command using either password (sshpass) or key authentication. Handles timeout with timeout command. Captures output and returns via stdout. Returns 0 on success, 2 on connection error, 3 on timeout.</p>
+    </section>
+
+    <section class="section">
+      <h2 id="examples">Usage Examples</h2>
+      <h3>Key-Based Authentication</h3>
+      <div style="position: relative;">
+        <pre><code>runSshCommand --username admin --hostname 192.168.1.10 \
+              --command "uptime" --keyfile ~/.ssh/server_key</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Password-Based Authentication</h3>
+      <div style="position: relative;">
+        <pre><code>runSshCommand --username root --hostname example.com \
+              --command "df -h" --password "secret123"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Using Global Variables</h3>
+      <div style="position: relative;">
+        <pre><code>GV_SSH_KEYFILE="/home/user/.ssh/prod_key"
+GV_SSH_PORT="2222"
+runSshCommand --username deploy --hostname prod.server.com \
+              --command "systemctl status nginx"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Runtime Override of Defaults</h3>
+      <div style="position: relative;">
+        <pre><code># Override global variable defaults with CLI parameter
+GV_SSH_PORT="2222"
+runSshCommand --username deploy --hostname prod.server.com \
+              --command "whoami" --port 3333  # Uses 3333, not 2222</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>With Custom Timeout</h3>
+      <div style="position: relative;">
+        <pre><code>runSshCommand --username admin --hostname 10.0.0.5 \
+              --command "long-running-job" --timeout 600 --keyfile ~/.ssh/id_rsa</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>Interactive Menu</h3>
+      <div style="position: relative;">
+        <pre><code>runSshCommand --menu</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <h3>In Shell Scripts with Output Capture</h3>
+      <div style="position: relative;">
+        <pre><code>#!/bin/bash
+source ./ssh.sh
+
+output=$(runSshCommand --username admin --hostname server.com \
+                       --command "ls -la /var/log" --keyfile ~/.ssh/id_rsa)
+
+if [[ $? -eq 0 ]]; then
+    echo "Logs directory listing:"
+    echo "$output"
+else
+    echo "SSH command failed"
+fi</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="options">SSH Options Used</h2>
+      <ul>
+        <li><code>-i KEYFILE</code> - Specify private key file path</li>
+        <li><code>-p PORT</code> - Connect to specific SSH port</li>
+        <li><code>-o StrictHostKeyChecking=no</code> - Disable host key verification (automation-friendly)</li>
+        <li><code>-o UserKnownHostsFile=/dev/null</code> - Ignore known_hosts file (automation-friendly)</li>
+        <li><code>timeout SECONDS</code> - Wrap SSH with timeout command for command-level timeout</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="design">Design Decisions</h2>
+      <div class="note">
+        <h3>Three-Tier Parameter Precedence</h3>
+        <p>Supports runtime parameters, global variables, and constants file. Provides maximum flexibility: defaults via constants, project-level via globals, operation-level via CLI.</p>
+      </div>
+      <div class="note">
+        <h3>Either/Or Authentication</h3>
+        <p>Supports both password (sshpass) and key-based authentication. Password requires optional dependency (sshpass) but provides fallback option. Key-based is more secure and preferred.</p>
+      </div>
+      <div class="note">
+        <h3>Host Key Bypassing</h3>
+        <p>Disables StrictHostKeyChecking and UserKnownHostsFile for automation scenarios. Appropriate for scripts connecting to known infrastructure. Production systems should validate host keys separately.</p>
+      </div>
+      <div class="note">
+        <h3>timeout Command Wrapper</h3>
+        <p>Uses external timeout command rather than SSH timeout options for platform-independent timeout handling. Returns exit code 124 for timeout detection.</p>
+      </div>
+      <div class="note">
+        <h3>Output Capture and Return</h3>
+        <p>Command output returned via stdout and also logged via loggy. Allows script chaining while maintaining visibility of operation.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="errors">Error Codes</h2>
+      <ul>
+        <li>Exit 0: Success - command executed on remote server</li>
+        <li>Exit 1: Parameter validation failed (missing required params, invalid parameters)</li>
+        <li>Exit 2: SSH connection error or command execution error</li>
+        <li>Exit 3: Command timeout (exceeded --timeout seconds)</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="testing">Testing Checklist</h2>
+      <ul>
+        <li><input type="checkbox"> Test key-based authentication with valid key</li>
+        <li><input type="checkbox"> Test key-based authentication with invalid key (error handling)</li>
+        <li><input type="checkbox"> Test password-based authentication with sshpass</li>
+        <li><input type="checkbox"> Test missing sshpass (error message)</li>
+        <li><input type="checkbox"> Test missing required parameter --username</li>
+        <li><input type="checkbox"> Test missing required parameter --hostname</li>
+        <li><input type="checkbox"> Test missing required parameter --command</li>
+        <li><input type="checkbox"> Test missing authentication (neither --password nor --keyfile)</li>
+        <li><input type="checkbox"> Test non-existent keyfile (validation error)</li>
+        <li><input type="checkbox"> Test unreadable keyfile (permission error)</li>
+        <li><input type="checkbox"> Test custom SSH port --port parameter</li>
+        <li><input type="checkbox"> Test default SSH port (22)</li>
+        <li><input type="checkbox"> Test custom timeout --timeout parameter</li>
+        <li><input type="checkbox"> Test command timeout (exit code 124)</li>
+        <li><input type="checkbox"> Test connection to unreachable host (connection error)</li>
+        <li><input type="checkbox"> Test simple command output capture</li>
+        <li><input type="checkbox"> Test multi-line command output</li>
+        <li><input type="checkbox"> Test --help parameter</li>
+        <li><input type="checkbox"> Test --menu interactive mode</li>
+        <li><input type="checkbox"> Test parameter precedence (runtime > global > constants > defaults)</li>
+        <li><input type="checkbox"> Test tilde expansion in keyfile path (~/.ssh/id_rsa)</li>
+        <li><input type="checkbox"> Test with GV_SSH_KEYFILE global variable</li>
+        <li><input type="checkbox"> Test with GV_SSH_PORT global variable</li>
+        <li><input type="checkbox"> Test with GV_SSH_TIMEOUT global variable</li>
+        <li><input type="checkbox"> Test constants.sh integration if present</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="deployment">Deployment Notes</h2>
+      <h3>Prerequisites</h3>
+      <ul>
+        <li>Bash shell environment</li>
+        <li>ssh command (typically OpenSSH)</li>
+        <li>timeout command (usually pre-installed on Linux)</li>
+        <li>sshpass (for password-based authentication, optional: <code>sudo apt install sshpass</code>)</li>
+        <li>loggy.sh in same directory</li>
+      </ul>
+      <h3>Key Setup</h3>
+      <p>For key-based authentication, ensure SSH keys are generated and deployed:</p>
+      <div style="position: relative;">
+        <pre><code># Generate SSH key pair if needed
+ssh-keygen -t rsa -f ~/.ssh/id_rsa -N ""
+
+# Copy public key to remote server
+ssh-copy-id -i ~/.ssh/id_rsa.pub user@hostname
+
+# Verify connection works
+ssh -i ~/.ssh/id_rsa user@hostname "whoami"</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <h3>Integration Pattern</h3>
+      <div style="position: relative;">
+        <pre><code>#!/bin/bash
+source ./ssh.sh
+
+# Set defaults
+GV_SSH_PORT="22"
+GV_SSH_TIMEOUT="300"
+GV_SSH_KEYFILE="${HOME}/.ssh/prod_key"
+
+# Execute command and capture output
+output=$(runSshCommand --username deploy --hostname prod.server.com \
+                       --command "curl http://localhost/health")
+
+if [[ $? -eq 0 ]]; then
+    echo "Health check passed: $output"
+else
+    echo "Health check failed"
+fi</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 id="security">Security Considerations</h2>
+      <ul>
+        <li>Never pass passwords on command line (visible in process list) - prefer --keyfile</li>
+        <li>Use GV_SSH_PASSWORD global variable instead of CLI for passwords (private scope)</li>
+        <li>SSH keys should be restricted permissions (chmod 600)</li>
+        <li>Disable StrictHostKeyChecking only in trusted environments</li>
+        <li>Audit log output for sensitive data exposure</li>
+        <li>Consider key-based authentication over password whenever possible</li>
+        <li>Rotate SSH keys regularly</li>
+        <li>Use bastion hosts for accessing production systems</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="enhancements">Future Enhancements</h2>
+      <ol>
+        <li>SSH ProxyCommand/bastion host support</li>
+        <li>SSH tunneling/port forwarding</li>
+        <li>Multi-host batch execution</li>
+        <li>Command retry with exponential backoff</li>
+        <li>SSH session multiplexing (ControlMaster)</li>
+        <li>Agent forwarding support</li>
+        <li>Custom SSH options via --ssh-options parameter</li>
+        <li>SCP file transfer capability</li>
+        <li>SFTP file operations</li>
+        <li>Connection pooling for repeated commands</li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2 id="related">Related Scripts</h2>
+      <ul>
+        <li><strong>loggy.sh:</strong> Provides structured logging for SSH operations</li>
+        <li><strong>findOracleDatabases.sh:</strong> Can be executed remotely via this script</li>
+        <li><strong>sqlToJson.sh:</strong> Can execute queries on remote servers via SSH</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 id="practices">Best Practices</h2>
+      <ul>
+        <li>Prefer key-based authentication over passwords for security</li>
+        <li>Set GV_SSH_KEYFILE globally to avoid CLI parameter repetition</li>
+        <li>Use --menu mode in interactive scripts for better UX</li>
+        <li>Wrap runSshCommand calls with output capture for downstream processing</li>
+        <li>Test connectivity with simple commands before complex operations</li>
+        <li>Use appropriate timeout values (allow extra time for slow connections)</li>
+        <li>Log all SSH operations for audit trails</li>
+        <li>Handle command failures gracefully (check exit codes)</li>
+        <li>Use hostnames instead of IPs when possible for maintainability</li>
+        <li>Document SSH port changes in configuration files</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>ssh.sh (runSshCommand) - Script Instructions</strong> | Generated: December 21, 2025 | Version 1.0</p>    <button class="back-to-top" id="backToTopBtn">Back to Top</button>  </footer>
+
+  <script>
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const pre = button.closest('div').querySelector('pre');
+        const text = pre.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          button.textContent = 'Copied!';
+          setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
